@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sebastian | Portefølje</title>
+<meta name="description" content="Portefølje med skills, speciale, elektronik og cykler.">
+<style>
+  :root{
+    --bg:#0a0a0b; --fg:#f2f1ec; --mute:#8a8a85; --accent:#b6ff1a; --card:#141416; --line:#26262a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:auto}
+  body{background:var(--bg);color:var(--fg);font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+
+  nav{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:6px;align-items:center;
+    padding:8px 10px;border-radius:14px;background:rgba(30,30,33,.7);backdrop-filter:blur(10px);border:1px solid var(--line)}
+  nav .logo{font-weight:700;padding:6px 12px;letter-spacing:-.02em}
+  nav a.pill{font-size:13px;text-decoration:none;color:var(--mute);padding:7px 12px;border-radius:9px}
+  nav a.pill:hover{color:var(--fg)}
+  nav a.cta{background:var(--accent);color:#000;font-weight:600}
+
+  /* Scroll-scene */
+  #scene{position:relative;height:520vh}
+  #stage{position:sticky;top:0;height:100vh;overflow:hidden;
+    background:radial-gradient(120% 80% at 50% 0%,#2a1d12 0%,#0a0a0b 60%)}
+  #gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+  #hero{position:absolute;left:0;right:0;bottom:12vh;text-align:center;pointer-events:none;transition:opacity .2s}
+  #hero h1{font-size:clamp(40px,8vw,120px);letter-spacing:-.04em;line-height:.95;font-weight:600}
+  #hero p{margin-top:14px;color:var(--mute);font-size:12px;letter-spacing:.2em;text-transform:uppercase}
+
+  .label{position:absolute;max-width:min(380px,80vw);opacity:0;transform:translateY(14px);transition:opacity .35s,transform .35s;pointer-events:none}
+  .label.on{opacity:1;transform:none;pointer-events:auto}
+  .label .num{color:var(--accent);font-size:12px;letter-spacing:.2em}
+  .label h2{font-size:clamp(28px,4.2vw,56px);letter-spacing:-.03em;line-height:1;margin:8px 0 10px;font-weight:600}
+  .label p{color:var(--mute);line-height:1.5;font-size:15px}
+  .label a{display:inline-block;margin-top:14px;font-size:13px;font-weight:600;color:#000;background:var(--accent);padding:9px 14px;border-radius:10px;text-decoration:none}
+  .l-left{left:6vw;top:50%;margin-top:-90px}
+  .l-right{right:6vw;top:50%;margin-top:-90px;text-align:right}
+  .l-right a{margin-left:auto}
+  @media (max-width:760px){
+    .l-left,.l-right{left:5vw;right:5vw;top:auto;bottom:6vh;margin:0;text-align:left;max-width:none}
+    .l-right a{margin-left:0}
+  }
+  #bar{position:absolute;left:0;bottom:0;height:3px;background:var(--accent);width:0}
+
+  /* Efter scenen */
+  section.grid{padding:14vh 6vw;max-width:1200px;margin:0 auto}
+  section.grid h3{font-size:clamp(28px,4vw,48px);letter-spacing:-.03em;margin-bottom:28px;font-weight:600}
+  .bento{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;min-height:200px;transition:transform .25s,border-color .25s}
+  .card:hover{transform:translateY(-4px);border-color:var(--accent)}
+  .card.big{grid-column:span 2}
+  .card small{color:var(--accent);letter-spacing:.18em;font-size:11px}
+  .card h4{font-size:22px;margin:10px 0 8px;letter-spacing:-.02em}
+  .card p{color:var(--mute);font-size:14px;line-height:1.5}
+  @media (max-width:860px){.bento{grid-template-columns:1fr 1fr}}
+  @media (max-width:520px){.bento{grid-template-columns:1fr}.card.big{grid-column:auto}}
+  footer{padding:60px 6vw 80px;text-align:center;color:var(--mute);font-size:13px}
+
+  #nogl{display:none;position:absolute;inset:0;place-items:center;text-align:center;color:var(--mute);padding:20px}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">Sebastian</span>
+  <a class="pill" href="#skills">Skills</a>
+  <a class="pill" href="#om">Om</a>
+  <a class="pill cta" href="#kontakt">Kontakt</a>
+</nav>
+
+<div id="scene">
+  <div id="stage">
+    <canvas id="gl"></canvas>
+    <div id="nogl"><p>Din browser kunne ikke starte 3D. Scroll videre for resten af siden.</p></div>
+
+    <div id="hero">
+      <h1>Sebastian<br>Dammeyer</h1>
+      <p>Scroll for at skille cyklen ad</p>
+    </div>
+
+    <div class="label l-right" data-i="0">
+      <span class="num">01</span><h2>Speciale &amp; universitet</h2>
+      <p>Kvantitative metoder, forvaltningsret og mit speciale. Her ligger bogen på bagagebæreren.</p>
+      <a href="#speciale">Se universitet</a>
+    </div>
+    <div class="label l-left" data-i="1">
+      <span class="num">02</span><h2>Elektronik</h2>
+      <p>Controller, gashåndtag, lodning og ledningsføring. Alt det der får cyklen til at køre.</p>
+      <a href="#elektronik">Se elektronik</a>
+    </div>
+    <div class="label l-right" data-i="2">
+      <span class="num">03</span><h2>Claude, skills &amp; mods</h2>
+      <p>Tabletten på styret bliver til computeren: skills, plugins og små værktøjer jeg bygger.</p>
+      <a href="#skills">Se projekter</a>
+    </div>
+    <div class="label l-left" data-i="3">
+      <span class="num">04</span><h2>Mine cykler</h2>
+      <p>Hjulet ruller ud som en samling af de cykler jeg har bygget og istandsat.</p>
+      <a href="#cykler">Se cykler</a>
+    </div>
+    <div id="bar"></div>
+  </div>
+</div>
+
+<section class="grid" id="skills">
+  <h3>Områder</h3>
+  <div class="bento">
+    <div class="card big" id="skills-card"><small>CLAUDE</small><h4>Skills, plugins &amp; mods</h4><p>Pladsholder. Her kommer projekter og skærmbilleder.</p></div>
+    <div class="card" id="speciale"><small>UNIVERSITET</small><h4>Speciale</h4><p>Pladsholder.</p></div>
+    <div class="card" id="elektronik"><small>ELEKTRONIK</small><h4>El &amp; lodning</h4><p>Pladsholder.</p></div>
+    <div class="card big" id="cykler"><small>CYKLER</small><h4>Cykel-portefølje</h4><p>Pladsholder.</p></div>
+    <div class="card" id="om"><small>OM MIG</small><h4>Hvem jeg er</h4><p>Pladsholder.</p></div>
+  </div>
+</section>
+<footer id="kontakt">Kontakt: kommer snart</footer>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const canvas = document.getElementById('gl');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+} catch(e){
+  document.getElementById('nogl').style.display = 'grid';
+  throw e;
+}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+
+scene.add(new THREE.HemisphereLight(0xffe2c4, 0x1a1a22, 1.1));
+const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(4,6,5); scene.add(key);
+const rim = new THREE.DirectionalLight(0xb6ff1a, 1.4); rim.position.set(-5,2,-4); scene.add(rim);
+
+const mat = (c, m=0.4, r=0.5) => new THREE.MeshStandardMaterial({color:c, metalness:m, roughness:r});
+const root = new THREE.Group(); scene.add(root);
+
+/* Stand-in cykel. Hver del er sin egen gruppe og skal senere udskiftes af en GLB-model. */
+const parts = {};
+function part(name, mesh, home, away){
+  const g = new THREE.Group(); g.add(mesh);
+  g.position.copy(home); root.add(g);
+  parts[name] = {g, home:home.clone(), away:away.clone(), spin:0};
+  return parts[name];
+}
+
+// Ramme (blive stående)
+const frame = new THREE.Group();
+const bar = new THREE.Mesh(new THREE.BoxGeometry(3.4,0.14,0.3), mat(0x2b2b30,.7,.35)); frame.add(bar);
+const post = new THREE.Mesh(new THREE.BoxGeometry(0.14,1.2,0.3), mat(0x2b2b30,.7,.35)); post.position.set(1.5,0.6,0); frame.add(post);
+const rearWheel = new THREE.Mesh(new THREE.TorusGeometry(0.75,0.09,16,48), mat(0x111114,.2,.8)); rearWheel.position.set(-1.7,-0.1,0); frame.add(rearWheel);
+part('frame', frame, new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0));
+
+// Bog (bagagebærer, bagtil)
+const book = new THREE.Mesh(new THREE.BoxGeometry(1.0,0.14,0.7), mat(0x8a5a2b,.1,.7));
+part('book', book, new THREE.Vector3(-1.7,0.7,0), new THREE.Vector3(-3.2,2.6,0.8));
+
+// Elektronik (kasse midt på)
+const elec = new THREE.Mesh(new THREE.BoxGeometry(0.9,0.35,0.45), mat(0x1c3d1a,.3,.5));
+const led = new THREE.Mesh(new THREE.SphereGeometry(0.05,12,12), new THREE.MeshBasicMaterial({color:0xb6ff1a}));
+led.position.set(0.3,0.2,0.23); elec.add(led);
+part('elec', elec, new THREE.Vector3(-0.3,-0.35,0), new THREE.Vector3(-2.8,-1.9,1.0));
+
+// Tablet (styr)
+const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.9,0.6,0.05), mat(0x0d0d10,.6,.2));
+const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.82,0.52), new THREE.MeshBasicMaterial({color:0x1d3a12}));
+screen.position.z = 0.028; tablet.add(screen);
+part('tablet', tablet, new THREE.Vector3(1.5,1.4,0), new THREE.Vector3(2.9,2.3,1.0));
+parts.tablet.g.rotation.y = 0;
+
+// Forhjul
+const front = new THREE.Mesh(new THREE.TorusGeometry(0.75,0.09,16,48), mat(0x111114,.2,.8));
+const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,0.3,16), mat(0xb6ff1a,.8,.3)); hub.rotation.x = Math.PI/2; front.add(hub);
+part('front', front, new THREE.Vector3(1.7,-0.1,0), new THREE.Vector3(3.3,-1.5,1.2));
+parts.front.spin = 5;
+
+/* Scroll-styring */
+const scrollEl = document.getElementById('scene');
+const labels = [...document.querySelectorAll('.label')];
+const hero = document.getElementById('hero');
+const barEl = document.getElementById('bar');
+let target = 0, p = 0;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function readScroll(){
+  const r = scrollEl.getBoundingClientRect();
+  const total = r.height - innerHeight;
+  target = Math.min(1, Math.max(0, -r.top / total));
+}
+addEventListener('scroll', readScroll, {passive:true});
+
+function resize(){
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect = w/h;
+  camera.position.set(0, 0.4, w/h < 0.8 ? 15 : 9.5);
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize(); readScroll();
+
+const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+const win = (x,a,b) => Math.min(1, Math.max(0, (x-a)/(b-a)));
+// Hver del har sit eget tidsvindue af scrollen
+const windows = { book:[.08,.30], elec:[.28,.50], tablet:[.48,.70], front:[.68,.90] };
+
+function frameLoop(t){
+  p += (target - p) * (reduce ? 1 : 0.08);
+  const spreadAll = ease(win(p,.02,.10));
+
+  for (const [name, [a,b]] of Object.entries(windows)){
+    const o = parts[name], k = ease(win(p,a,b));
+    o.g.position.lerpVectors(o.home, o.away, k);
+    o.g.rotation.z = k * 0.25 * (name==='book' ? 1 : -1);
+    if (o.spin) o.g.rotation.y = k * 0.0 ;
+  }
+  parts.front.g.children[0].rotation.z = -p * 18; // hjulet ruller
+  parts.frame.g.children[0].children[2].rotation.z = -p * 18;
+
+  root.rotation.y = -0.45 + spreadAll * 0.35 + Math.sin(p*3)*0.06;
+  root.rotation.x = 0.08;
+  root.position.y = 0.0 + spreadAll * 0.0;
+
+  // Aktivt label
+  const idx = p<.08 ? -1 : p<.30 ? 0 : p<.50 ? 1 : p<.70 ? 2 : p<.98 ? 3 : 3;
+  labels.forEach((el,i)=>el.classList.toggle('on', i===idx));
+  hero.style.opacity = String(1 - win(p,.01,.07));
+  barEl.style.width = (p*100)+'%';
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(frameLoop);
+}
+requestAnimationFrame(frameLoop);
+</script>
+</body>
+</html>
