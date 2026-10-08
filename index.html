@@ -26,8 +26,8 @@
   #stage{position:sticky;top:0;height:100vh;overflow:hidden;
     background:radial-gradient(120% 80% at 50% 0%,#2a1d12 0%,#0a0a0b 60%)}
   #gl{position:absolute;inset:0;width:100%;height:100%;display:block}
-  #hero{position:absolute;left:0;right:0;bottom:12vh;text-align:center;pointer-events:none;transition:opacity .2s}
-  #hero h1{font-size:clamp(40px,8vw,120px);letter-spacing:-.04em;line-height:.95;font-weight:600}
+  #hero{position:absolute;left:0;right:0;bottom:6vh;text-align:center;pointer-events:none;transition:opacity .2s}
+  #hero h1{font-size:clamp(36px,6.2vw,92px);letter-spacing:-.04em;line-height:.95;font-weight:600}
   #hero p{margin-top:14px;color:var(--mute);font-size:12px;letter-spacing:.2em;text-transform:uppercase}
 
   .label{position:absolute;max-width:min(380px,80vw);opacity:0;transform:translateY(14px);transition:opacity .35s,transform .35s;pointer-events:none}
@@ -36,8 +36,8 @@
   .label h2{font-size:clamp(28px,4.2vw,56px);letter-spacing:-.03em;line-height:1;margin:8px 0 10px;font-weight:600}
   .label p{color:var(--mute);line-height:1.5;font-size:15px}
   .label a{display:inline-block;margin-top:14px;font-size:13px;font-weight:600;color:#000;background:var(--accent);padding:9px 14px;border-radius:10px;text-decoration:none}
-  .l-left{left:6vw;top:50%;margin-top:-90px}
-  .l-right{right:6vw;top:50%;margin-top:-90px;text-align:right}
+  .l-left{left:6vw;bottom:7vh}
+  .l-right{right:6vw;bottom:7vh;text-align:right}
   .l-right a{margin-left:auto}
   @media (max-width:760px){
     .l-left,.l-right{left:5vw;right:5vw;top:auto;bottom:6vh;margin:0;text-align:left;max-width:none}
@@ -143,44 +143,75 @@ const rim = new THREE.DirectionalLight(0xb6ff1a, 1.4); rim.position.set(-5,2,-4)
 const mat = (c, m=0.4, r=0.5) => new THREE.MeshStandardMaterial({color:c, metalness:m, roughness:r});
 const root = new THREE.Group(); scene.add(root);
 
-/* Stand-in cykel. Hver del er sin egen gruppe og skal senere udskiftes af en GLB-model. */
+/* Stand-in long john. Hver del er sin egen gruppe og kan senere udskiftes af en GLB-model. */
 const parts = {};
-function part(name, mesh, home, away){
-  const g = new THREE.Group(); g.add(mesh);
+function part(name, obj, home, away){
+  const g = new THREE.Group(); g.add(obj);
   g.position.copy(home); root.add(g);
-  parts[name] = {g, home:home.clone(), away:away.clone(), spin:0};
+  parts[name] = {g, home:home.clone(), away:away.clone()};
   return parts[name];
 }
+const V = (x,y,z)=>new THREE.Vector3(x,y,z);
+function box(w,h,d,m,x=0,y=0,z=0,rz=0){
+  const o = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), m); o.position.set(x,y,z); o.rotation.z = rz; return o;
+}
+function wheel(r, tire=0x0c0c0e){
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(r,0.085,16,56), mat(tire,.1,.9)));
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(r-0.09,0.025,8,56), mat(0xb9bcc2,.9,.25)));
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.3,16), mat(0xb6ff1a,.8,.3));
+  hub.rotation.x = Math.PI/2; g.add(hub);
+  for (let i=0;i<16;i++){
+    const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,r-0.1,4), mat(0xb9bcc2,.9,.3));
+    sp.position.set(Math.cos(i*Math.PI/8)*(r-0.1)/2, Math.sin(i*Math.PI/8)*(r-0.1)/2, 0);
+    sp.rotation.z = i*Math.PI/8 - Math.PI/2; g.add(sp);
+  }
+  return g;
+}
 
-// Ramme (blive stående)
+// Ramme: lang bjælke, ladkasse foran, styrerør, sadel, bagfælg-holder
 const frame = new THREE.Group();
-const bar = new THREE.Mesh(new THREE.BoxGeometry(3.4,0.14,0.3), mat(0x2b2b30,.7,.35)); frame.add(bar);
-const post = new THREE.Mesh(new THREE.BoxGeometry(0.14,1.2,0.3), mat(0x2b2b30,.7,.35)); post.position.set(1.5,0.6,0); frame.add(post);
-const rearWheel = new THREE.Mesh(new THREE.TorusGeometry(0.75,0.09,16,48), mat(0x111114,.2,.8)); rearWheel.position.set(-1.7,-0.1,0); frame.add(rearWheel);
-part('frame', frame, new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0));
+const steel = mat(0x2a2d33,.75,.35), wood = mat(0xb98a4e,.05,.75), woodD = mat(0x8a6232,.05,.8);
+frame.add(box(5.2,0.12,0.22,steel,0.4,-0.1,0));                       // lang bjælke
+frame.add(box(0.12,1.0,0.2,steel,-1.0,0.4,0,-0.2));                   // sadelrør
+frame.add(box(0.5,0.08,0.3,mat(0x111114,.1,.9),-1.12,0.95,0));        // sadel
+frame.add(box(0.1,1.5,0.12,steel,3.05,0.65,0,-0.22));                 // styrerør / gaffel
+frame.add(box(0.1,0.1,1.0,steel,2.85,1.42,0));                        // styr
+// Ladkasse (åben foroven)
+const bx=1.75, by=0.28;
+frame.add(box(2.5,0.08,1.1,woodD,bx,by-0.3,0));                       // bund
+frame.add(box(2.5,0.5,0.07,wood,bx,by,0.55));                         // side
+frame.add(box(2.5,0.5,0.07,wood,bx,by,-0.55));                        // side
+frame.add(box(0.07,0.5,1.1,wood,bx-1.25,by,0));                       // bagende
+frame.add(box(0.07,0.5,1.1,wood,bx+1.25,by,0));                       // forende
+const rearW = wheel(0.8); rearW.position.set(-2.2,-0.1,0); frame.add(rearW);
+part('frame', frame, V(0,0,0), V(0,0,0));
 
-// Bog (bagagebærer, bagtil)
-const book = new THREE.Mesh(new THREE.BoxGeometry(1.0,0.14,0.7), mat(0x8a5a2b,.1,.7));
-part('book', book, new THREE.Vector3(-1.7,0.7,0), new THREE.Vector3(-3.2,2.6,0.8));
+// Bagagebærer + bog
+const rack = new THREE.Group();
+rack.add(box(1.0,0.05,0.5,steel,0,-0.07,0));
+rack.add(box(0.95,0.16,0.6,mat(0x1f3b6e,.1,.6),0,0.03,0));            // bog
+rack.add(box(0.9,0.12,0.55,mat(0xf1ead8,0,.9),0.02,0.03,0.0));        // sider
+part('book', rack, V(-2.2,0.82,0), V(-3.2,2.2,0.9));
 
-// Elektronik (kasse midt på)
-const elec = new THREE.Mesh(new THREE.BoxGeometry(0.9,0.35,0.45), mat(0x1c3d1a,.3,.5));
-const led = new THREE.Mesh(new THREE.SphereGeometry(0.05,12,12), new THREE.MeshBasicMaterial({color:0xb6ff1a}));
-led.position.set(0.3,0.2,0.23); elec.add(led);
-part('elec', elec, new THREE.Vector3(-0.3,-0.35,0), new THREE.Vector3(-2.8,-1.9,1.0));
+// Elektronik: batteri + controller
+const elec = new THREE.Group();
+elec.add(box(0.95,0.28,0.4,mat(0x16301a,.3,.5),0,0,0));
+const led = new THREE.Mesh(new THREE.SphereGeometry(0.045,12,12), new THREE.MeshBasicMaterial({color:0xb6ff1a}));
+led.position.set(0.32,0.17,0.2); elec.add(led);
+elec.add(box(0.35,0.12,0.3,mat(0xc8561a,.3,.5),-0.3,0.2,0));
+part('elec', elec, V(-0.35,0.1,0), V(-2.2,-2.1,1.1));
 
-// Tablet (styr)
-const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.9,0.6,0.05), mat(0x0d0d10,.6,.2));
-const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.82,0.52), new THREE.MeshBasicMaterial({color:0x1d3a12}));
-screen.position.z = 0.028; tablet.add(screen);
-part('tablet', tablet, new THREE.Vector3(1.5,1.4,0), new THREE.Vector3(2.9,2.3,1.0));
-parts.tablet.g.rotation.y = 0;
+// Tablet på styret
+const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.95,0.62,0.05), mat(0x0d0d10,.6,.2));
+const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.86,0.54), new THREE.MeshBasicMaterial({color:0x20451a}));
+scr.position.z = 0.028; tablet.add(scr);
+tablet.rotation.y = Math.PI/2;
+part('tablet', tablet, V(2.85,1.85,0), V(3.2,2.4,1.1));
 
-// Forhjul
-const front = new THREE.Mesh(new THREE.TorusGeometry(0.75,0.09,16,48), mat(0x111114,.2,.8));
-const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,0.3,16), mat(0xb6ff1a,.8,.3)); hub.rotation.x = Math.PI/2; front.add(hub);
-part('front', front, new THREE.Vector3(1.7,-0.1,0), new THREE.Vector3(3.3,-1.5,1.2));
-parts.front.spin = 5;
+// Forhjul (lille)
+const front = wheel(0.55);
+part('front', front, V(3.45,-0.35,0), V(4.9,-1.5,1.3));
 
 /* Scroll-styring */
 const scrollEl = document.getElementById('scene');
@@ -201,7 +232,7 @@ function resize(){
   const w = innerWidth, h = innerHeight;
   renderer.setSize(w,h,false);
   camera.aspect = w/h;
-  camera.position.set(0, 0.4, w/h < 0.8 ? 15 : 9.5);
+  camera.position.set(0, 0.4, w/h < 0.8 ? 19 : 12.5);
   camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize(); readScroll();
@@ -219,14 +250,13 @@ function frameLoop(t){
     const o = parts[name], k = ease(win(p,a,b));
     o.g.position.lerpVectors(o.home, o.away, k);
     o.g.rotation.z = k * 0.25 * (name==='book' ? 1 : -1);
-    if (o.spin) o.g.rotation.y = k * 0.0 ;
   }
-  parts.front.g.children[0].rotation.z = -p * 18; // hjulet ruller
-  parts.frame.g.children[0].children[2].rotation.z = -p * 18;
+  parts.front.g.children[0].rotation.z = -p * 22; // hjulene ruller
+  rearW.rotation.z = -p * 16;
 
   root.rotation.y = -0.45 + spreadAll * 0.35 + Math.sin(p*3)*0.06;
   root.rotation.x = 0.08;
-  root.position.y = 0.0 + spreadAll * 0.0;
+  root.position.y = 0.7;
 
   // Aktivt label
   const idx = p<.08 ? -1 : p<.30 ? 0 : p<.50 ? 1 : p<.70 ? 2 : p<.98 ? 3 : 3;
