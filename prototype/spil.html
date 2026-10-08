@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototype: kloden</title>
+<style>
+  :root { --accent: #b6ff1a; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #101418; font-family: system-ui, sans-serif; color: #fff; }
+  canvas { display: block; }
+  .hud { position: fixed; left: 16px; top: 16px; display: flex; gap: 12px; align-items: center; font-size: 14px; }
+  .hud a { color: var(--accent); text-decoration: none; }
+  .hud label { display: flex; gap: 6px; align-items: center; opacity: .85; }
+  .hud input[type=color] { width: 28px; height: 22px; padding: 0; border: 0; background: none; }
+  .hint { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); font-size: 14px; opacity: .8; text-align: center; }
+  .card { position: fixed; right: 20px; bottom: 20px; max-width: 320px; padding: 18px 20px; border-radius: 14px;
+          background: rgba(16,20,24,.88); border: 1px solid var(--accent); opacity: 0; transform: translateY(12px);
+          transition: opacity .25s, transform .25s; pointer-events: none; }
+  .card.on { opacity: 1; transform: none; }
+  .card h2 { margin: 0 0 6px; font-size: 20px; color: var(--accent); }
+  .card p { margin: 0; font-size: 14px; line-height: 1.45; }
+  .pad { position: fixed; right: 16px; bottom: 16px; display: none; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(2, 56px); gap: 6px; }
+  .pad button { border-radius: 12px; border: 1px solid #fff4; background: #0008; color: #fff; font-size: 22px; touch-action: none; }
+  .pad .up { grid-column: 2; grid-row: 1; } .pad .left { grid-column: 1; grid-row: 2; }
+  .pad .down { grid-column: 2; grid-row: 2; } .pad .right { grid-column: 3; grid-row: 2; }
+  .card button { margin-top: 12px; padding: 8px 14px; border-radius: 10px; border: 0; background: var(--accent); color: #101418; font-weight: 700; cursor: pointer; pointer-events: none; }
+  .card.on button { pointer-events: auto; }
+  #radarBox { position: fixed; top: 14px; right: 14px; width: 150px; transition: opacity .3s; }
+  #radar { width: 150px; height: 150px; display: block; cursor: pointer; }
+  #chips { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+  #chips button { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; border: 1px solid #ffffff22; background: rgba(16,20,24,.72);
+                  color: #fff; font-size: 12.5px; text-align: left; cursor: pointer; }
+  #chips button:hover { border-color: var(--accent); }
+  #chips i { width: 10px; height: 10px; border-radius: 50%; flex: none; border: 1.5px solid #14181c; }
+  @media (max-width: 600px) { #radarBox { width: 118px; } #radar { width: 118px; height: 118px; } #chips button { font-size: 11.5px; padding: 5px 8px; } }
+  #vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(10,30,45,.38) 100%); }
+  #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+  #catalog { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100vw); box-sizing: border-box; padding: 28px 26px; overflow-y: auto;
+             background: rgba(16,20,24,.93); border-left: 2px solid var(--accent); transform: translateX(105%); transition: transform .6s cubic-bezier(.2,.8,.2,1); }
+  #catalog.on { transform: none; }
+  #catalog h2 { margin: 0 0 4px; font-size: 28px; color: var(--accent); }
+  #catalog .sub { margin: 0 0 18px; font-size: 13px; opacity: .6; }
+  #catalog .item { padding: 14px 16px; margin-bottom: 12px; border-radius: 12px; background: #ffffff0d; border: 1px solid #ffffff1a; }
+  #catalog .item h3 { margin: 0 0 4px; font-size: 17px; }
+  #catalog .item p { margin: 0; font-size: 14px; line-height: 1.45; opacity: .85; }
+  #catClose { margin-top: 10px; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--accent); background: none; color: var(--accent); font-weight: 700; cursor: pointer; }
+  @media (pointer: coarse) { .pad { display: grid; } .hint { display: none; } .card { right: auto; left: 16px; bottom: 150px; } }
+</style>
+</head>
+<body>
+<div class="hud">
+  <a href="../index.html">← Til forsiden</a>
+  <label>Himmel <input id="skyPick" type="color"></label>
+  <label>Jord <input id="groundPick" type="color"></label>
+</div>
+<div class="hint">Piletaster: kør. Klik på et hus eller en prik på radaren: kør derhen. Mellemrum ved et hus: gå ind. Esc: ud</div>
+<div class="card" id="card"><h2 id="cardTitle"></h2><p id="cardText"></p><button id="enterBtn">Gå ind (mellemrum)</button></div>
+<div id="radarBox"><canvas id="radar"></canvas><div id="chips"></div></div>
+<div id="vignette"></div>
+<div id="fade"></div>
+<div id="catalog"><h2 id="catTitle"></h2><p class="sub">Udkast. Teksten kan rettes i filen.</p><div id="catItems"></div><button id="catClose">Forlad rummet (Esc)</button></div>
+<div class="pad">
+  <button class="up" data-k="ArrowUp">▲</button>
+  <button class="left" data-k="ArrowLeft">◀</button>
+  <button class="down" data-k="ArrowDown">▼</button>
+  <button class="right" data-k="ArrowRight">▶</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ---- Alt der kan ændres står her ----
+const CONFIG = {
+  sky: '#a9dcd4',
+  ground: '#7c9f5c',
+  bike: '#6b2fc0',
+  accent: '#b6ff1a',
+  outline: false,   // sæt til true for sorte konturer
+  planetRadius: 40,
+  maxSpeed: 11,
+  treeCount: 70,
+};
+const HOUSES = [
+  { name: 'Speciale',      text: 'Her bor specialet og universitetet. (pladsholder)', color: '#e8a0a0', dir: [ 1,  1,  1],
+    items: [
+      { title: 'Specialet', text: 'Mit speciale på Aarhus Universitet. Emne, metode og resultater skrives her.' },
+      { title: 'Litteratursøgning', text: 'Systematisk søgning og gennemgang med PubMed, Google Scholar og Zotero.' },
+      { title: 'Data og statistik', text: 'Analyse i R og RStudio.' },
+      { title: 'Skrivning', text: 'Rapporter i LaTeX og Word, og værktøjer der gør læsning og korrektur lettere.' },
+    ] },
+  { name: 'Elektronik',    text: 'Batterier, loddekolbe og ESP32. (pladsholder)',      color: '#e6bf6e', dir: [ 1, -1, -1],
+    items: [
+      { title: 'Lys til boksering', text: 'DMX-lysstyring i QLC+ til boksning.' },
+      { title: 'ESP32 og Raspberry Pi', text: 'Små projekter og eksperimenter.' },
+      { title: 'Værkstedet', text: 'Lodning, multimeter og reparation af elektronik derhjemme.' },
+    ] },
+  { name: 'Claude og mods',text: 'Skills, plugins og mine egne mods. (pladsholder)',   color: '#82b4d4', dir: [-1,  1, -1],
+    items: [
+      { title: 'Skills', text: 'Egne skills, fx Google Scholar til Zotero, videoanalyse og tekstrettelse.' },
+      { title: 'Mods', text: 'Credit-meter, sorteringsknap til sessioner og ugeplan.' },
+      { title: 'Plugins', text: 'Egne plugins i en lokal samling.' },
+    ] },
+  { name: 'Mine cykler',   text: 'Long john og de andre. (pladsholder)',               color: '#ad9fd0', dir: [-1, -1,  1],
+    items: [
+      { title: 'Min long john', text: 'Lilla ladcykel med motor i forhjulet og batteri bagpå.' },
+      { title: 'Flere cykler', text: 'Her kommer de andre cykler.' },
+    ] },
+];
+// -------------------------------------
+
+const R = CONFIG.planetRadius;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(CONFIG.sky);
+scene.fog = new THREE.Fog(CONFIG.sky, 40, 125);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 400);
+
+const Y0 = new THREE.Vector3(0, 1, 0);
+// Blød tegneseriebelysning: fire lysniveauer
+const gradient = new THREE.DataTexture(new Uint8Array([150,150,150, 195,195,195, 228,228,228, 255,255,255]), 4, 1, THREE.RGBFormat);
+gradient.minFilter = gradient.magFilter = THREE.NearestFilter;
+gradient.needsUpdate = true;
+const toon = (c) => new THREE.MeshToonMaterial({ color: c, gradientMap: gradient });
+scene.add(new THREE.HemisphereLight(0xdff3f5, 0x7b8f68, 0.5));
+const sun = new THREE.DirectionalLight(0xfff0d2, 0.7);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -26, right: 26, top: 26, bottom: -26, near: 5, far: 140 });
+sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.04;
+scene.add(sun); scene.add(sun.target);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// Himmel: farveforløb (med "op" = væk fra kloden) og bløde skyer
+const skyGroup = new THREE.Group(); scene.add(skyGroup);
+const skyUni = { top: { value: new THREE.Color() }, bottom: { value: new THREE.Color() }, upDir: { value: new THREE.Vector3(0, 1, 0) } };
+const dome = new THREE.Mesh(new THREE.SphereGeometry(300, 24, 16), new THREE.ShaderMaterial({
+  uniforms: skyUni, side: THREE.BackSide, depthWrite: false, fog: false,
+  vertexShader: 'varying vec3 vW; void main(){ vW = (modelMatrix * vec4(position,1.0)).xyz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+  fragmentShader: 'uniform vec3 top; uniform vec3 bottom; uniform vec3 upDir; varying vec3 vW; void main(){ float t = smoothstep(-0.1, 0.85, dot(normalize(vW), upDir)); gl_FragColor = vec4(mix(bottom, top, t), 1.0); }'
+}));
+dome.renderOrder = -1; skyGroup.add(dome);
+function applySky(hex) {
+  const hz = new THREE.Color(hex);
+  skyUni.bottom.value.copy(hz); skyUni.top.value.copy(hz).lerp(new THREE.Color('#4f93c4'), .6);
+  scene.fog.color.copy(hz); scene.background.copy(hz);
+}
+applySky(CONFIG.sky);
+const clouds = new THREE.Group(); skyGroup.add(clouds);
+for (let i = 0; i < 16; i++) {
+  const c = new THREE.Group(), d = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).normalize();
+  for (let k = 0; k < 5; k++) {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(3 + Math.random() * 3, 10, 8), new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: gradient }));
+    b.position.set((k - 2) * 4 + Math.random() * 2, Math.random() * 2, Math.random() * 3); b.scale.y = .65; c.add(b);
+  }
+  c.position.copy(d).multiplyScalar(72 + Math.random() * 22);
+  c.quaternion.setFromUnitVectors(Y0, d);
+  clouds.add(c);
+}
+
+const inkMat = new THREE.MeshBasicMaterial({ color: 0x14181c, side: THREE.BackSide, visible: CONFIG.outline });
+function mesh(geo, color, ink = 1.07) {
+  const m = new THREE.Mesh(geo, toon(color));
+  if (ink) { const o = new THREE.Mesh(geo, inkMat); o.scale.setScalar(ink); m.add(o); }
+  return m;
+}
+
+// Kloden
+function groundTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const x = c.getContext('2d'); x.fillStyle = '#f4f4f4'; x.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 900; i++) {
+    const r = 8 + Math.random() * 34, v = 205 + Math.random() * 50 | 0;
+    x.fillStyle = 'rgba(' + v + ',' + v + ',' + v + ',.35)'; x.beginPath(); x.arc(Math.random() * 512, Math.random() * 512, r, 0, 6.283); x.fill();
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(10, 5); t.anisotropy = 4; return t;
+}
+const planetMat = new THREE.MeshToonMaterial({ color: CONFIG.ground, map: groundTexture(), gradientMap: gradient });
+const planetMesh = new THREE.Mesh(new THREE.SphereGeometry(R, 64, 40), planetMat);
+scene.add(planetMesh);
+
+// Hjælper: sæt ting på kloden, med toppen væk fra centrum
+const Y = new THREE.Vector3(0, 1, 0);
+function place(obj, dir, spin = 0) {
+  const n = dir.clone().normalize();
+  obj.position.copy(n).multiplyScalar(R);
+  obj.quaternion.setFromUnitVectors(Y, n).multiply(new THREE.Quaternion().setFromAxisAngle(Y, spin));
+  scene.add(obj);
+}
+
+// Huse
+const houseDirs = [];
+const houseGroups = [];
+const beacons = [];
+function makeHouse(h, idx) {
+  const g = new THREE.Group();
+  const add = (geo, color, x, y, z, ink = 1.07) => { const m = mesh(geo, color, ink); m.position.set(x, y, z); g.add(m); return m; };
+  const B = (w, hh, d) => new THREE.BoxGeometry(w, hh, d);
+  let top = 7;   // højde til skiltet
+  if (idx === 0) {
+    // Speciale: universitetsbygning med søjler og stor åben bog på taget
+    add(B(7, 3.6, 4.4), h.color, 0, 1.8, 0);
+    add(B(7.6, .5, 4.9), '#f4efe6', 0, 3.85, 0);
+    for (let i = -2; i <= 2; i++) add(new THREE.CylinderGeometry(.28, .28, 3.4, 8), '#f4efe6', i * 1.35, 1.7, 2.45, 1.1);
+    const roofGeo = new THREE.CylinderGeometry(2.2, 2.2, 7.4, 3); roofGeo.rotateZ(Math.PI / 2); roofGeo.rotateX(-Math.PI / 2);
+    const roof = add(roofGeo, '#c8604f', 0, 4.6, 0); roof.scale.y = .45;
+    const l = add(B(2.6, .22, 2.2), '#ffffff', -1.3, 6.1, 0); l.rotation.z = .3;
+    const r = add(B(2.6, .22, 2.2), '#ffffff', 1.3, 6.1, 0); r.rotation.z = -.3;
+    add(B(5.6, .16, 2.4), '#6b2fc0', 0, 5.72, 0, 1.1);
+    top = 8.2;
+  } else if (idx === 1) {
+    // Elektronik: værksted med fladt tag, stort batteri og lyn
+    add(B(5.6, 3.2, 4.4), h.color, 0, 1.6, 0);
+    add(B(6, .35, 4.8), '#8a929c', 0, 3.4, 0);
+    add(B(2.8, 1.5, 1.6), '#2a2f36', 0, 4.5, 0);
+    add(new THREE.CylinderGeometry(.28, .28, .3, 10), CONFIG.accent, 0, 5.4, 0, 1.15);
+    add(B(.9, .5, .06), CONFIG.accent, 0, 4.5, .84, 0);
+    add(new THREE.CylinderGeometry(.08, .08, 3, 6), '#8a929c', 2.4, 5, -1, 1.2);
+    add(new THREE.SphereGeometry(.28, 10, 8), '#e4574b', 2.4, 6.5, -1, 1.2);
+    top = 8;
+  } else if (idx === 2) {
+    // Claude og mods: høj skærm-facade med limegrøn skærm og parabol
+    add(B(5, 4.4, 4), h.color, 0, 2.2, 0);
+    add(B(4.2, 2.6, .25), '#1a1d22', 0, 5.3, 1.2, 1.05);
+    add(B(3.7, 2.1, .1), CONFIG.accent, 0, 5.3, 1.35, 0);
+    for (let i = 0; i < 3; i++) add(B(2.4 - i * .5, .16, .06), '#1a1d22', -.3 - i * .1, 5.9 - i * .55, 1.42, 0);
+    const dish = add(new THREE.ConeGeometry(.9, .5, 12), '#cfd6dd', 1.8, 4.9, -.6, 1.1); dish.rotation.x = -Math.PI / 2.4;
+    add(new THREE.CylinderGeometry(.07, .07, .8, 6), '#8a929c', 1.8, 4.7, -.6, 1.2);
+    top = 7.8;
+  } else {
+    // Mine cykler: skur med stort hjul foran og rundt tag
+    add(B(5.6, 3.2, 4.4), h.color, 0, 1.6, 0);
+    const roofGeo = new THREE.CylinderGeometry(2.4, 2.4, 5.8, 12, 1, false, 0, Math.PI); roofGeo.rotateZ(Math.PI / 2);
+    add(roofGeo, '#e4574b', 0, 3.2, 0);
+    const wh = mesh(new THREE.TorusGeometry(1.7, .22, 8, 24), '#23272e', 1.06); wh.position.set(0, 4.9, 2.4); g.add(wh);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(1.4, .07, 6, 24), toon('#cfd6dd')); rim.position.copy(wh.position); g.add(rim);
+    for (let i = 0; i < 4; i++) { const s = new THREE.Mesh(new THREE.BoxGeometry(.06, 2.8, .06), toon('#9aa3ad')); s.rotation.z = i * Math.PI / 4; s.position.copy(wh.position); g.add(s); }
+    top = 8.8;
+  }
+  // dør og vindue til alle
+  const doorX = idx === 0 ? 0 : -1, doorZ = 2.25 + (idx === 0 ? .3 : 0);
+  add(B(1.5, 2.6, .2), '#5b3a29', doorX, 1.3, doorZ, 0);
+  g.userData.door = new THREE.Vector3(doorX, 0, doorZ + 1.3);
+  if (idx !== 2) add(B(1.0, 1.0, .2), '#fff6c9', idx === 0 ? 2.4 : 1.6, 2, 2.25, 0);
+  // skilt
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128;
+  const x = c.getContext('2d');
+  x.fillStyle = '#14181c'; x.fillRect(0, 0, 512, 128);
+  x.strokeStyle = CONFIG.accent; x.lineWidth = 6; x.strokeRect(3, 3, 506, 122);
+  x.fillStyle = CONFIG.accent; x.font = 'bold 54px system-ui'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(h.name, 256, 66);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), fog: false }));
+  sp.scale.set(6, 1.5, 1); sp.position.y = top + 1.2; g.add(sp);
+  g.userData.top = top;
+  return g;
+}
+HOUSES.forEach((h, i) => {
+  const dir = new THREE.Vector3(...h.dir).normalize();
+  houseDirs.push(dir);
+  const hg = makeHouse(h, i); place(hg, dir, Math.random() * 6.28); houseGroups.push(hg);
+  // flydende markør over huset (kan ses på afstand og klikkes)
+  const pin = new THREE.Group();
+  const pm = new THREE.MeshBasicMaterial({ color: h.color, fog: false });
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(.8, 1.5, 4), pm); cone.rotation.x = Math.PI; pin.add(cone);
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(.7, 10, 8), pm); ball.position.y = 1.4; pin.add(ball);
+  pin.position.y = hg.userData.top + 3.4; pin.userData.base = pin.position.y; hg.add(pin); beacons.push(pin);
+});
+
+// Træer, ikke for tæt på husene
+function makeTree() {
+  const g = new THREE.Group();
+  const t = mesh(new THREE.CylinderGeometry(.25, .35, 1.2, 6), '#7a5a3c'); t.position.y = .6; g.add(t);
+  if (Math.random() < .45) {
+    const l = mesh(new THREE.IcosahedronGeometry(1.5, 0), Math.random() < .5 ? '#5f9a4b' : '#74ad58'); l.position.y = 2.5; g.add(l);
+  } else {
+    const a = mesh(new THREE.ConeGeometry(1.3, 2.2, 7), '#3f7a45'); a.position.y = 2.1; g.add(a);
+    const b = mesh(new THREE.ConeGeometry(1.0, 1.8, 7), '#52934f'); b.position.y = 3.2; g.add(b);
+  }
+  g.scale.setScalar(.8 + Math.random() * .7);
+  return g;
+}
+for (let i = 0, tries = 0; i < CONFIG.treeCount && tries < 2000; tries++) {
+  const d = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).normalize();
+  if (houseDirs.some((h) => h.angleTo(d) < 0.3)) continue;
+  place(makeTree(), d, Math.random() * 6.28); i++;
+}
+
+// Små detaljer: græstotter, blomster, sten og buske (mange kopier af samme form)
+function scatter(n, geo, mat, o = {}) {
+  const im = new THREE.InstancedMesh(geo, mat, n);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), qs = new THREE.Quaternion(), sc = new THREE.Vector3(), pos = new THREE.Vector3(), col = new THREE.Color();
+  const lo = o.min || .8, hi = o.max || 1.3;
+  let i = 0, tries = 0;
+  while (i < n && tries < n * 30) {
+    tries++;
+    const d = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).normalize();
+    if (houseDirs.some((hd) => hd.angleTo(d) < (o.clear || .25))) continue;
+    q.setFromUnitVectors(Y, d); qs.setFromAxisAngle(Y, Math.random() * 6.28); q.multiply(qs);
+    const sz = lo + Math.random() * (hi - lo);
+    sc.set(sz, sz * (o.tall || 1) * (.8 + Math.random() * .5), sz);
+    pos.copy(d).multiplyScalar(R);
+    m.compose(pos, q, sc); im.setMatrixAt(i, m);
+    if (o.colors) im.setColorAt(i, col.set(o.colors[(Math.random() * o.colors.length) | 0]));
+    i++;
+  }
+  im.count = i; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true;
+  scene.add(im); return im;
+}
+const white = toon('#ffffff');
+scatter(520, new THREE.ConeGeometry(.14, .6, 5).translate(0, .28, 0), white, { colors: ['#6f9d4a', '#5b8a3f', '#8ab85a'], min: .8, max: 1.5 });
+scatter(150, new THREE.SphereGeometry(.14, 6, 5).translate(0, .42, 0), white, { colors: ['#f2a7b5', '#f6dd7a', '#ffffff', '#c9b5ee'], min: .9, max: 1.3 });
+scatter(28, new THREE.DodecahedronGeometry(.6, 0).translate(0, .2, 0), white, { colors: ['#9aa09a', '#868c88', '#a9a79c'], min: .6, max: 1.6, clear: .3 });
+scatter(46, new THREE.IcosahedronGeometry(.9, 0).translate(0, .5, 0), white, { colors: ['#5f9a4b', '#4f8a47', '#78a85a'], min: .7, max: 1.3, clear: .3 });
+
+// Cyklen (long john) efter dit foto. Fremad er +Z, op er +Y. Mål i enheder, jorden er y = 0.
+const bike = new THREE.Group();
+const lean = new THREE.Group(); bike.add(lean);
+const V3 = THREE.Vector3;
+// Rør mellem to punkter (z, y) i siden af cyklen, med sort kontur
+function limb(parent, z1, y1, z2, y2, t, color, ink = true) {
+  const len = Math.hypot(z2 - z1, y2 - y1);
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(t, t, len), toon(color)));
+  if (ink) g.add(new THREE.Mesh(new THREE.BoxGeometry(t + .06, t + .06, len + .04), inkMat));
+  g.position.set(0, (y1 + y2) / 2, (z1 + z2) / 2);
+  g.rotation.x = -Math.atan2(y2 - y1, z2 - z1);
+  parent.add(g); return g;
+}
+function box(parent, w, h, d, x, y, z, color, ink = 1.08) {
+  const m = mesh(new THREE.BoxGeometry(w, h, d), color, ink); m.position.set(x, y, z); parent.add(m); return m;
+}
+function wheel(radius, hubMotor) {
+  const g = new THREE.Group();
+  const tyre = mesh(new THREE.TorusGeometry(radius, radius * .13, 8, 32), '#23272e', 1.06); tyre.rotation.y = Math.PI / 2; g.add(tyre);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(radius * .86, radius * .035, 6, 32), toon('#cfd6dd')); rim.rotation.y = Math.PI / 2; g.add(rim);
+  for (let i = 0; i < 4; i++) {
+    const s = new THREE.Mesh(new THREE.BoxGeometry(.025, radius * 1.72, .025), toon('#9aa3ad')); s.rotation.x = i * Math.PI / 4; g.add(s);
+  }
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(radius * (hubMotor ? .3 : .14), radius * (hubMotor ? .3 : .14), .16, 14), toon(hubMotor ? '#b9c0c8' : '#2a2f36'));
+  hub.rotation.z = Math.PI / 2; g.add(hub);
+  return g;
+}
+const RR = .58, FR = .5, RZ = -1.69, FZ = 1.71, BB = [-0.69, .55];
+const rear = wheel(RR, false); rear.position.set(0, RR, RZ); lean.add(rear);
+// Forhjul med gaffel drejer samlet
+const frontPivot = new THREE.Group(); frontPivot.position.set(0, FR, FZ); lean.add(frontPivot);
+const front = wheel(FR, true); frontPivot.add(front);
+limb(frontPivot, 0, 0, -.33, .89, .09, CONFIG.bike);
+box(frontPivot, .3, .26, .18, 0, .62, .22, '#2a2f36');               // lygte
+box(frontPivot, .22, .2, .05, 0, .62, .34, '#fff2b0', 0);
+// Stel
+limb(lean, RZ, RR, BB[0], BB[1], .09, CONFIG.bike);                 // kædestag
+limb(lean, RZ, RR, -1.15, 1.33, .08, CONFIG.bike);                  // sædestag
+limb(lean, BB[0], BB[1], -1.18, 1.8, .09, CONFIG.bike);             // sæderør
+limb(lean, BB[0], BB[1], 1.1, .55, .1, CONFIG.bike);                // lav hovedbjælke
+limb(lean, BB[0], .65, 1.1, .65, .07, CONFIG.bike);
+limb(lean, 1.1, .58, 1.38, 1.38, .1, CONFIG.bike);                  // op mod styrehoved
+limb(lean, -.15, .55, -.15, 1.78, .09, '#6b727b');                  // styrerør
+box(lean, .1, .34, .9, 0, 1.34, -.58, '#4a1f86');                   // lilla plade i trekanten
+box(lean, .55, .08, 1.2, 0, 1.31, -1.45, CONFIG.bike);              // bagagebærer
+box(lean, .36, .2, 1.0, 0, 1.46, -1.5, '#23272e');                  // batteri
+box(lean, .7, .06, 1.05, 0, .62, .52, '#23272e');                   // lastplatform
+box(lean, .3, .12, .6, 0, 1.87, -1.18, '#7b4a2f');                  // sadel (brun)
+// Bøger på platformen (specialet)
+box(lean, .5, .12, .42, 0, .71, .25, '#ff8fa3'); box(lean, .46, .12, .38, 0, .83, .27, '#ffd166'); box(lean, .5, .12, .4, 0, .95, .24, CONFIG.accent);
+// Krank og pedaler drejer
+const crank = new THREE.Group(); crank.position.set(0, BB[1], BB[0]); lean.add(crank);
+const ring = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .05, 16), toon('#2a2f36')); ring.rotation.z = Math.PI / 2; ring.position.x = .1; crank.add(ring);
+box(crank, .05, .5, .06, .12, 0, 0, '#2a2f36', 0);
+box(crank, .16, .05, .12, .2, .25, 0, '#1a1d22', 0); box(crank, .16, .05, .12, -.2, -.25, 0, '#1a1d22', 0);
+// Styr med tablet drejer
+const bars = new THREE.Group(); bars.position.set(0, 1.82, -.15); lean.add(bars);
+box(bars, 1.0, .06, .06, 0, 0, 0, '#2a2f36', 1.1);
+box(bars, .12, .1, .12, .5, 0, 0, '#111', 0); box(bars, .12, .1, .12, -.5, 0, 0, '#111', 0);
+box(bars, .5, .34, .05, 0, .24, .02, '#1a1d22');
+const screen = new THREE.Mesh(new THREE.PlaneGeometry(.42, .26), new THREE.MeshBasicMaterial({ color: CONFIG.accent }));
+screen.position.set(0, .24, -.01); screen.rotation.y = Math.PI; bars.add(screen);
+// Rytter (egen gruppe, så han kan hoppe af)
+const rider = new THREE.Group(); lean.add(rider);
+box(rider, .46, .66, .34, 0, 2.28, -1.05, '#e4574b');                 // krop
+const head = mesh(new THREE.SphereGeometry(.25, 14, 10), '#f2c9a5'); head.position.set(0, 2.82, -1.0); rider.add(head);
+const hair = mesh(new THREE.SphereGeometry(.27, 14, 10, 0, Math.PI * 2, 0, Math.PI * .55), '#1e2228', 0); hair.position.set(0, 2.84, -1.02); rider.add(hair);
+
+// Ansigt
+[-1, 1].forEach((sx) => { const e = new THREE.Mesh(new THREE.SphereGeometry(.035, 8, 6), new THREE.MeshBasicMaterial({ color: 0x14181c })); e.position.set(sx * .09, 2.86, -.765); rider.add(e); });
+// Ben og arme med led (knæ og albuer), regnes ud hver frame
+const _Z = new THREE.Vector3(0, 0, 1), _v = new THREE.Vector3();
+function dynLimb(parent, t, color) {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(t, t, 1), toon(color)));
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(t + .06, t + .06, 1.02), inkMat));
+  parent.add(g); return g;
+}
+function setDyn(g, a, b) {
+  g.position.copy(a).add(b).multiplyScalar(.5);
+  g.quaternion.setFromUnitVectors(_Z, _v.copy(b).sub(a).normalize());
+  g.scale.set(1, 1, Math.max(a.distanceTo(b), .01));
+}
+const legs = [0, 1].map(() => ({ th: dynLimb(rider, .17, '#2a2f36'), sh: dynLimb(rider, .15, '#2a2f36'), foot: box(rider, .2, .1, .34, 0, 0, 0, '#1a1d22', 1.1) }));
+const arms = [0, 1].map(() => {
+  const hand = mesh(new THREE.SphereGeometry(.09, 8, 6), '#f2c9a5', 1.1); rider.add(hand);
+  return { up: dynLimb(rider, .13, '#e4574b'), lo: dynLimb(rider, .11, '#e4574b'), hand };
+});
+const _hip = new THREE.Vector3(), _knee = new THREE.Vector3(), _ank = new THREE.Vector3(), _sh = new THREE.Vector3(), _el = new THREE.Vector3(), _gr = new THREE.Vector3();
+function kneeZY(hz, hy, pz, py, L1, L2) {
+  const dz = pz - hz, dy = py - hy; const d = Math.min(Math.hypot(dz, dy), L1 + L2 - .02);
+  const a = Math.acos(THREE.MathUtils.clamp((L1 * L1 + d * d - L2 * L2) / (2 * L1 * d), -1, 1)), base = Math.atan2(dy, dz);
+  const c1 = [hz + L1 * Math.cos(base + a), hy + L1 * Math.sin(base + a)], c2 = [hz + L1 * Math.cos(base - a), hy + L1 * Math.sin(base - a)];
+  return c1[0] > c2[0] ? c1 : c2;   // knæet peger fremad
+}
+function updateRider() {
+  const a = crank.rotation.x;
+  [1, -1].forEach((sg, k) => {
+    const py = BB[1] + sg * .25 * Math.cos(a), pz = BB[0] + sg * .25 * Math.sin(a), px = sg * .22;
+    _hip.set(sg * .13, 1.98, -1.12); _ank.set(px, py + .12, pz);
+    const kz = kneeZY(_hip.z, _hip.y, _ank.z, _ank.y, .85, .85);
+    _knee.set((_hip.x + px) / 2 + sg * .05, kz[1], kz[0]);
+    setDyn(legs[k].th, _hip, _knee); setDyn(legs[k].sh, _knee, _ank);
+    legs[k].foot.position.set(px, py + .06, pz + .04);
+  });
+  const t = bars.rotation.y, c = Math.cos(t), sn = Math.sin(t);
+  [1, -1].forEach((sg, k) => {
+    _sh.set(sg * .27, 2.52, -1.02); _gr.set(sg * .5 * c, 1.86, -.15 - sg * .5 * sn);
+    _el.copy(_sh).add(_gr).multiplyScalar(.5).add(new THREE.Vector3(sg * .2, -.22, -.05));
+    setDyn(arms[k].up, _sh, _el); setDyn(arms[k].lo, _el, _gr); arms[k].hand.position.copy(_gr);
+  });
+}
+updateRider();scene.add(bike);
+
+// Tilstand: p er position på kloden (enhedsvektor), h er kørselsretning (vandret ved p)
+const p = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(1, 0, 0), -0.4).normalize();
+const h = new THREE.Vector3(1, 0, 0);
+h.sub(p.clone().multiplyScalar(h.dot(p))).normalize();
+let speed = 0, steerVis = 0, auto = null;
+const _ap = new THREE.Vector3();
+const keys = {};
+addEventListener('keydown', (e) => { if (e.key.startsWith('Arrow')) { keys[e.key] = true; e.preventDefault(); } });
+addEventListener('keyup', (e) => { keys[e.key] = false; });
+document.querySelectorAll('.pad button').forEach((b) => {
+  const k = b.dataset.k;
+  b.addEventListener('pointerdown', () => keys[k] = true);
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => b.addEventListener(ev, () => keys[k] = false));
+});
+
+const camPos = new THREE.Vector3(), tmp = new THREE.Vector3(), right = new THREE.Vector3();
+const card = document.getElementById('card');
+let shown = -1;
+
+function step(dt) {
+  let fwd = (keys.ArrowUp ? 1 : 0) - (keys.ArrowDown ? 1 : 0);
+  let steer = (keys.ArrowLeft ? 1 : 0) - (keys.ArrowRight ? 1 : 0), slow = 1;
+  if (auto !== null) {
+    const d = houseDirs[auto], a = p.angleTo(d);
+    if (fwd || steer) auto = null;                        // egne taster tager over
+    else if (a < 0.19) { auto = null; speed *= 0.3; }    // fremme: bremse
+    else {
+      const t = tmp.copy(d).sub(_ap.copy(p).multiplyScalar(p.dot(d))).normalize();
+      const err = Math.atan2(_ap.copy(h).cross(t).dot(p), h.dot(t));
+      steer = THREE.MathUtils.clamp(err * 2.5, -1, 1); fwd = 1;
+      slow = (1 - .5 * Math.min(Math.abs(err) / Math.PI, 1)) * (a < .45 ? THREE.MathUtils.clamp((a - .15) / .3, .25, 1) : 1);
+    }
+  }
+  const target = fwd > 0 ? CONFIG.maxSpeed * slow : fwd < 0 ? -CONFIG.maxSpeed * .4 : 0;
+  speed += (target - speed) * (1 - Math.exp(-dt * (fwd ? 1.6 : 2.5)));
+
+  // sving, kun når cyklen bevæger sig
+  const turn = steer * 1.7 * THREE.MathUtils.clamp(speed / 5, -1, 1);
+  h.applyAxisAngle(p, turn * dt);
+
+  // kør langs kloden
+  const axis = tmp.copy(p).cross(h).normalize();
+  const ang = speed * dt / R;
+  p.applyAxisAngle(axis, ang); h.applyAxisAngle(axis, ang);
+  p.normalize();
+  h.sub(tmp.copy(p).multiplyScalar(h.dot(p))).normalize();
+
+  // huse er faste: skub cyklen ud, hvis den kommer for tæt på
+  houseDirs.forEach((d) => {
+    if (p.angleTo(d) < 0.125) {
+      const ax = tmp.copy(d).cross(p);
+      if (ax.lengthSq() > 1e-8) { ax.normalize(); p.copy(d).applyAxisAngle(ax, 0.125); speed *= 0.96; }
+    }
+  });
+  h.sub(tmp.copy(p).multiplyScalar(h.dot(p))).normalize();
+
+  // cyklens placering og retning: x = p × h (venstre), y = p, z = h
+  right.copy(p).cross(h);
+  bike.position.copy(p).multiplyScalar(R);
+  bike.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, p, h));
+
+  steerVis += (steer - steerVis) * (1 - Math.exp(-dt * 8));
+  lean.rotation.z = -steerVis * 0.18 * THREE.MathUtils.clamp(speed / 8, 0, 1);
+  frontPivot.rotation.y = steerVis * 0.45; bars.rotation.y = steerVis * 0.45;
+  const spin = speed * dt / 0.5;
+  rear.rotation.x += spin * 0.86; front.rotation.x += spin * 1.0; crank.rotation.x += spin * 0.5; updateRider();
+}
+
+// Kamera følger et punkt på kloden (pu) med retning fw
+const _cp = new THREE.Vector3(), _side = new THREE.Vector3(), _look = new THREE.Vector3();
+function camTarget(pu, fw, back, upd, side) {
+  _side.copy(pu).cross(fw);
+  return _cp.copy(pu).multiplyScalar(R + upd).addScaledVector(fw, -back).addScaledVector(_side, side);
+}
+function followCam(pu, fw, dt, back, upd, side, lookUp, lookFwd) {
+  camPos.lerp(camTarget(pu, fw, back, upd, side), 1 - Math.exp(-dt * 4));
+  camera.position.copy(camPos);
+  camera.up.copy(pu);
+  camera.lookAt(_look.copy(pu).multiplyScalar(R + lookUp).addScaledVector(fw, lookFwd));
+  sun.target.position.copy(pu).multiplyScalar(R);
+  sun.position.copy(pu).multiplyScalar(R + 55).addScaledVector(_side, 22).addScaledVector(fw, -12);
+  skyUni.upDir.value.copy(pu);
+}
+function snapCam() { camPos.copy(camTarget(follow.p, follow.h, 5.5, 3.0, 1.8)); }
+
+function updateCard() {
+  let near = -1;
+  houseDirs.forEach((d, i) => { if (p.angleTo(d) < 0.2) near = i; });
+  if (near === shown) return;
+  shown = near;
+  if (near >= 0) {
+    document.getElementById('cardTitle').textContent = HOUSES[near].name;
+    document.getElementById('cardText').textContent = HOUSES[near].items.map((x) => x.title).join(', ');
+    card.classList.add('on');
+  } else card.classList.remove('on');
+}
+
+// Farvevælgere til himmel og jord
+const skyPick = document.getElementById('skyPick'), groundPick = document.getElementById('groundPick');
+skyPick.value = CONFIG.sky; groundPick.value = CONFIG.ground;
+skyPick.oninput = () => applySky(skyPick.value);
+groundPick.oninput = () => planetMat.color.set(groundPick.value);
+
+addEventListener('resize', () => {
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+});
+
+// ===================== Gå ind i husene =====================
+const fadeEl = document.getElementById('fade');
+const catalog = document.getElementById('catalog');
+const clamp01 = (x) => Math.min(Math.max(x, 0), 1);
+const ease = (u) => (u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2);
+
+// Figuren der går (står på jorden, fremad er +Z)
+const walker = new THREE.Group(); walker.visible = false; scene.add(walker);
+const wBody = new THREE.Group(); walker.add(wBody);
+function wLimb(x, y, w, hgt, color) {
+  const piv = new THREE.Group(); piv.position.set(x, y, 0); wBody.add(piv);
+  const m = mesh(new THREE.BoxGeometry(w, hgt, w * 1.1), color); m.position.y = -hgt / 2; piv.add(m);
+  return piv;
+}
+const legL = wLimb(.15, 1.1, .22, 1.1, '#2a2f36'), legR = wLimb(-.15, 1.1, .22, 1.1, '#2a2f36');
+const wTorso = mesh(new THREE.BoxGeometry(.56, .85, .34), '#e4574b'); wTorso.position.y = 1.55; wBody.add(wTorso);
+const armL = wLimb(.38, 1.9, .17, .8, '#e4574b'), armR = wLimb(-.38, 1.9, .17, .8, '#e4574b');
+const wHead = mesh(new THREE.SphereGeometry(.3, 14, 10), '#f2c9a5'); wHead.position.y = 2.25; wBody.add(wHead);
+[-1, 1].forEach((sx) => { const e = new THREE.Mesh(new THREE.SphereGeometry(.04, 8, 6), new THREE.MeshBasicMaterial({ color: 0x14181c })); e.position.set(sx * .1, 2.3, .28); wBody.add(e); });
+const wHair = mesh(new THREE.SphereGeometry(.32, 14, 10, 0, Math.PI * 2, 0, Math.PI * .55), '#1e2228', 0); wHair.position.y = 2.28; wBody.add(wHair);
+function swing(phase, amt) {
+  const s = Math.sin(phase) * amt;
+  legL.rotation.x = s * .7; legR.rotation.x = -s * .7; armL.rotation.x = -s * .6; armR.rotation.x = s * .6;
+  wBody.position.y = Math.abs(Math.cos(phase)) * .08 * amt;
+}
+const _wm = new THREE.Matrix4(), _wx = new V3();
+function setWalker(pos, up, fwd) {
+  walker.position.copy(pos);
+  _wx.copy(up).cross(fwd);
+  walker.quaternion.setFromRotationMatrix(_wm.makeBasis(_wx, up, fwd));
+}
+function tangentTo(A, B) { return B.clone().sub(A.clone().multiplyScalar(A.dot(B))).normalize(); }
+
+// Rummet indeni (ligger langt væk over kloden)
+const IN = new V3(0, 400, 0);
+const room = new THREE.Group(); room.position.copy(IN); scene.add(room);
+const lamp = new THREE.PointLight(0xfff0d0, 1.15, 50); lamp.position.set(0, 6, 1); room.add(lamp);
+const icam = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 200);
+function rbox(w, hh, d, x, y, z, color, ink = 1.04) {
+  const m = mesh(new THREE.BoxGeometry(w, hh, d), color, ink); m.position.set(x, y, z); room.add(m); return m;
+}
+const CHALK = '"Marker Felt","Chalkboard SE","Comic Sans MS",system-ui';
+function boardTexture(hs) {
+  const c = document.createElement('canvas'); c.width = 1560; c.height = 800;
+  const x = c.getContext('2d');
+  x.fillStyle = '#2c4638'; x.fillRect(0, 0, c.width, c.height);
+  x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 6; x.strokeRect(24, 24, c.width - 48, c.height - 48);
+  x.textBaseline = 'middle'; x.fillStyle = '#f6f6ef'; x.font = 'bold 110px ' + CHALK;
+  x.fillText(hs.name, 90, 150);
+  x.strokeStyle = CONFIG.accent; x.lineWidth = 8; x.beginPath(); x.moveTo(90, 225); x.lineTo(90 + x.measureText(hs.name).width, 225); x.stroke();
+  x.font = '64px ' + CHALK;
+  hs.items.slice(0, 4).forEach((it, k) => {
+    x.fillStyle = CONFIG.accent; x.fillText('•', 90, 330 + k * 100);
+    x.fillStyle = '#f6f6ef'; x.fillText(it.title, 150, 330 + k * 100);
+  });
+  const t = new THREE.CanvasTexture(c); t.anisotropy = 4; return t;
+}
+function buildRoom(i) {
+  while (room.children.length > 1) room.remove(room.children[1]);
+  const hs = HOUSES[i];
+  rbox(14, .4, 12, 0, -.2, 0, '#d9b48a', 0);
+  rbox(14, 8, .4, 0, 4, -6.2, hs.color, 0); rbox(.4, 8, 12, -7, 4, 0, hs.color, 0); rbox(.4, 8, 12, 7, 4, 0, hs.color, 0);
+  rbox(5.5, .05, 3.2, 0, .05, .8, '#3a4250', 0);
+  rbox(8.4, 4.6, .3, 0, 3.7, -5.9, '#8b5a2b');
+  const bm = new THREE.Mesh(new THREE.PlaneGeometry(7.8, 4.0), new THREE.MeshBasicMaterial({ map: boardTexture(hs) }));
+  bm.position.set(0, 3.7, -5.72); room.add(bm);
+  rbox(7.8, .12, .3, 0, 1.45, -5.6, '#8b5a2b', 0);
+  // skrivebord
+  rbox(2.6, .18, 1.4, -4.8, 1.3, -3.2, '#8b5a2b');
+  [[-5.9, -3.7], [-3.7, -3.7], [-5.9, -2.7], [-3.7, -2.7]].forEach(([x, z]) => rbox(.14, 1.25, .14, x, .65, z, '#6e4522', 0));
+  if (i === 0) { rbox(.9, .18, .7, -5, 1.48, -3.2, '#ff8fa3'); rbox(.8, .18, .6, -5, 1.66, -3.2, '#ffd166'); rbox(.8, .18, .6, -4.9, 1.84, -3.2, CONFIG.accent); }
+  if (i === 1) { rbox(.9, .5, .5, -5, 1.65, -3.2, '#23272e'); rbox(.2, .12, .2, -5.2, 1.96, -3.2, CONFIG.accent, 0); }
+  if (i === 2) { rbox(1.1, .08, .8, -5, 1.43, -3.2, '#8a929c'); rbox(1.1, .7, .06, -5, 1.82, -3.55, '#1a1d22'); const sc = rbox(.95, .55, .02, -5, 1.82, -3.51, CONFIG.accent, 0); }
+  if (i === 3) {
+    const w = mesh(new THREE.TorusGeometry(1.3, .2, 8, 24), '#23272e'); w.position.set(5.6, 1.5, -5.4); room.add(w);
+    const r = new THREE.Mesh(new THREE.TorusGeometry(1.05, .06, 6, 24), toon('#cfd6dd')); r.position.copy(w.position); room.add(r);
+  }
+  // plante
+  const pot = mesh(new THREE.CylinderGeometry(.5, .4, .8, 10), '#c8603f'); pot.position.set(5.8, .4, -4.4); room.add(pot);
+  const leaf = mesh(new THREE.ConeGeometry(.7, 1.8, 8), '#3da45a'); leaf.position.set(5.8, 1.7, -4.4); room.add(leaf);
+}
+function showCatalog(i) {
+  const hs = HOUSES[i];
+  document.getElementById('catTitle').textContent = hs.name;
+  const box = document.getElementById('catItems'); box.innerHTML = '';
+  hs.items.forEach((it) => {
+    const d = document.createElement('div'); d.className = 'item';
+    const t = document.createElement('h3'); t.textContent = it.title;
+    const p2 = document.createElement('p'); p2.textContent = it.text;
+    d.append(t, p2); box.append(d);
+  });
+  catalog.classList.add('on');
+}
+
+// Tidslinjer
+const tweens = [];
+function tween(dur, fn) { return new Promise((res) => tweens.push({ t: 0, dur, fn, res })); }
+function runTweens(dt) {
+  for (let k = tweens.length - 1; k >= 0; k--) {
+    const tw = tweens[k]; tw.t += dt;
+    const u = Math.min(tw.t / tw.dur, 1); tw.fn(u);
+    if (u >= 1) { tweens.splice(k, 1); tw.res(); }
+  }
+}
+function walkAlong(A, B, spd) {
+  const theta = A.angleTo(B); if (theta < 1e-3) return Promise.resolve();
+  const ax = A.clone().cross(B).normalize(), dur = theta * R / spd;
+  return tween(dur, (u) => {
+    const pu = A.clone().applyAxisAngle(ax, theta * u);
+    const f = ax.clone().cross(pu).normalize();
+    setWalker(pu.clone().multiplyScalar(R), pu, f); swing(u * dur * 9, 1);
+    follow.p.copy(pu); follow.h.copy(f);
+  });
+}
+function hop(from, to, f0, f1) {
+  return tween(.7, (u) => {
+    const e = ease(u), pos = from.clone().lerp(to, e), up = pos.clone().normalize();
+    pos.addScaledVector(up, Math.sin(Math.PI * u) * 1.6);
+    const f = f0.clone().lerp(f1, e); f.sub(up.clone().multiplyScalar(f.dot(up))).normalize();
+    setWalker(pos, up, f); swing(0, 0);
+    follow.p.copy(up); follow.h.copy(f);
+  });
+}
+
+// Rute fra et punkt til døren, uden om huset hvis døren vender væk
+function routeTo(g, startDir) {
+  const dirDoor = g.localToWorld(g.userData.door.clone()).normalize();
+  const S = g.worldToLocal(startDir.clone().multiplyScalar(R));
+  const toDir = (x, z) => g.localToWorld(new V3(x, 0, z)).normalize();
+  const route = [startDir.clone()], hw = 5.8;
+  if (S.z < 3.4) {
+    const sx = S.x >= 0 ? 1 : -1;
+    if (Math.abs(S.x) < hw) route.push(toDir(sx * hw, S.z));
+    route.push(toDir(sx * hw, 4.6));
+  }
+  route.push(dirDoor);
+  return route;
+}
+async function walkRoute(route, spd) { for (let k = 1; k < route.length; k++) await walkAlong(route[k - 1], route[k], spd); }
+
+let mode = 'ride';   // ride | busy | inside
+let ctx = null, exiting = false;
+const follow = { p: p.clone(), h: h.clone() };
+
+async function enterHouse(i) {
+  if (mode !== 'ride' || i < 0) return;
+  mode = 'busy'; auto = null; card.classList.remove('on'); speed = 0; document.querySelector('.hint').style.opacity = 0;
+  for (const k in keys) keys[k] = false;
+  const g = houseGroups[i];
+  const saddleW = bike.localToWorld(new V3(0, 2.1, -1.1));
+  const dirEnd = bike.localToWorld(new V3(1.7, 0, -.4)).normalize();
+  const route = routeTo(g, dirEnd);
+  ctx = { i, g, dirEnd, route, fwdOut: new V3(0, 0, 1).applyQuaternion(g.quaternion) };
+  follow.p.copy(p); follow.h.copy(h);
+  rider.visible = false; walker.visible = true; walker.scale.setScalar(1); swing(0, 0);
+  await hop(saddleW, dirEnd.clone().multiplyScalar(R), h.clone(), tangentTo(dirEnd, route[1]));
+  await walkRoute(route, 4.5);
+  // vend mod døren
+  {
+    const pos = walker.position.clone(), up = pos.clone().normalize();
+    const fa = new V3(0, 0, 1).applyQuaternion(walker.quaternion);
+    const fb = ctx.fwdOut.clone().negate(); fb.sub(up.clone().multiplyScalar(fb.dot(up))).normalize();
+    await tween(.35, (u) => { setWalker(pos, up, fa.clone().lerp(fb, ease(u)).normalize()); swing(0, 0); follow.p.copy(up); follow.h.copy(fb); });
+  }
+  // ind ad døren og fade til sort
+  const p0 = walker.position.clone(), up0 = p0.clone().normalize();
+  const f0 = new V3(0, 0, 1).applyQuaternion(walker.quaternion);
+  await tween(.8, (u) => {
+    setWalker(p0.clone().addScaledVector(f0, 1.5 * u), up0, f0); swing(u * 8, 1);
+    fadeEl.style.opacity = clamp01((u - .35) / .65);
+  });
+  // inde i rummet
+  mode = 'inside'; walker.visible = true;
+  skyGroup.visible = false; scene.background.set('#1d2330'); scene.fog.color.set('#1d2330');
+  buildRoom(i);
+  const start = new V3(0, 0, 5.4).add(IN), end = new V3(3.2, 0, -3.4).add(IN), UP = new V3(0, 1, 0);
+  const look = new V3();
+  icam.fov = 50; icam.updateProjectionMatrix();
+  const setCam = (pos) => {
+    icam.position.set(pos.x * .35, IN.y + 3.4, pos.z + 7.5);
+    icam.lookAt(look.set(pos.x * .5, IN.y + 2.2, pos.z - 5));
+  };
+  setWalker(start, UP, new V3(0, 0, -1)); swing(0, 0); setCam(start);
+  await tween(.5, (u) => { fadeEl.style.opacity = 1 - u; });
+  const dirv = end.clone().sub(start).setY(0).normalize();
+  await tween(2.6, (u) => {
+    const pos = start.clone().lerp(end, ease(u)), turn = clamp01((u - .8) / .2);
+    setWalker(pos, UP, dirv.clone().lerp(new V3(0, 0, -1), turn).normalize());
+    swing(u * 2.6 * 7, 1 - turn); setCam(pos);
+  });
+  // kameraet zoomer ind på tavlen
+  const c0 = icam.position.clone(), l0 = look.clone();
+  // slutposition: hele tavlen i billedet, og lidt til venstre så kataloget kan ligge til højre
+  const fovEnd = 36, tanH = Math.tan(fovEnd * Math.PI / 360) * icam.aspect;
+  const dist = Math.min(Math.max(3.9 / (tanH * .6), 4.5), 13);
+  const wide = icam.aspect > 1.1, shift = wide ? 0.15 * 2 * dist * tanH : 0;
+  const c1 = new V3(shift, IN.y + 3.3, IN.z - 5.6 + dist), l1 = new V3(shift, IN.y + 3.7, IN.z - 5.6);
+  await tween(1.8, (u) => {
+    const e = ease(u);
+    icam.position.lerpVectors(c0, c1, e); look.lerpVectors(l0, l1, e); icam.lookAt(look);
+    icam.fov = 50 + (fovEnd - 50) * e; icam.updateProjectionMatrix();
+  });
+  swing(0, 0); showCatalog(i);
+}
+
+async function exitHouse() {
+  if (mode !== 'inside' || exiting) return;
+  exiting = true; catalog.classList.remove('on');
+  await tween(.5, (u) => { fadeEl.style.opacity = u; });
+  const { g, dirEnd, fwdOut } = ctx;
+  skyGroup.visible = true; applySky(skyPick.value);
+  mode = 'busy';
+  const doorIn = g.localToWorld(new V3(g.userData.door.x, 0, g.userData.door.z - 1.4));
+  const dirIn = doorIn.clone().normalize();
+  setWalker(doorIn, dirIn, fwdOut); swing(0, 0);
+  follow.p.copy(dirIn); follow.h.copy(fwdOut); snapCam();
+  await tween(.5, (u) => { fadeEl.style.opacity = 1 - u; });
+  const rt = ctx.route, dirDoor = rt[rt.length - 1];
+  await walkAlong(dirIn, dirDoor, 3.5);
+  await walkRoute(rt.slice().reverse(), 4.5);
+  const saddleW = bike.localToWorld(new V3(0, 2.1, -1.1));
+  const fEnd = new V3(0, 0, 1).applyQuaternion(walker.quaternion);
+  await hop(dirEnd.clone().multiplyScalar(R), saddleW, fEnd, h.clone());
+  rider.visible = true; walker.visible = false;
+  mode = 'ride'; shown = -1; exiting = false; document.querySelector('.hint').style.opacity = '';
+}
+
+addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.key === 'Enter') { if (mode === 'ride' && shown >= 0) enterHouse(shown); e.preventDefault(); }
+  if (e.key === 'Escape') exitHouse();
+});
+document.getElementById('enterBtn').addEventListener('click', () => { if (mode === 'ride' && shown >= 0) enterHouse(shown); });
+document.getElementById('catClose').addEventListener('click', exitHouse);
+addEventListener('resize', () => { icam.aspect = innerWidth / innerHeight; icam.updateProjectionMatrix(); });
+
+// Radar: dig i midten, fremad er op. Afstand = vinkel på kloden (kanten er den modsatte side)
+const radar = document.getElementById('radar'), rctx = radar.getContext('2d'), RS = 150, DPR = Math.min(devicePixelRatio || 1, 2);
+radar.width = RS * DPR; radar.height = RS * DPR;
+const radarBox = document.getElementById('radarBox');
+let radarDots = [];
+const _rt = new THREE.Vector3(), _rr = new THREE.Vector3();
+function goTo(i) { if (mode === 'ride') auto = i; }
+function drawRadar(time) {
+  const c = rctx, cx = RS / 2, cy = RS / 2, rr = RS / 2 - 11;
+  c.setTransform(DPR, 0, 0, DPR, 0, 0); c.clearRect(0, 0, RS, RS);
+  c.fillStyle = 'rgba(16,20,24,.72)'; c.beginPath(); c.arc(cx, cy, RS / 2 - 2, 0, 6.283); c.fill();
+  c.strokeStyle = 'rgba(182,255,26,.28)'; c.lineWidth = 1;
+  [.33, .66, 1].forEach((f) => { c.beginPath(); c.arc(cx, cy, rr * f, 0, 6.283); c.stroke(); });
+  c.beginPath(); c.moveTo(cx, cy - rr); c.lineTo(cx, cy + rr); c.moveTo(cx - rr, cy); c.lineTo(cx + rr, cy); c.stroke();
+  _rr.copy(h).cross(p);   // højre
+  radarDots = [];
+  houseDirs.forEach((d, i) => {
+    const a = p.angleTo(d);
+    _rt.copy(d).sub(tmp.copy(p).multiplyScalar(p.dot(d)));
+    if (_rt.lengthSq() > 1e-8) _rt.normalize();
+    const k = Math.min(a / Math.PI, 1) * rr, x = cx + _rt.dot(_rr) * k, y = cy - _rt.dot(h) * k;
+    radarDots.push({ i, x, y });
+    c.globalAlpha = a > Math.PI / 2 ? .6 : 1;
+    if (auto === i) { c.strokeStyle = CONFIG.accent; c.lineWidth = 2; c.beginPath(); c.arc(x, y, 8 + 2 * Math.sin(time * .008), 0, 6.283); c.stroke(); }
+    c.fillStyle = HOUSES[i].color; c.strokeStyle = '#14181c'; c.lineWidth = 1.5;
+    c.beginPath(); c.arc(x, y, 6, 0, 6.283); c.fill(); c.stroke();
+    c.globalAlpha = 1;
+  });
+  c.fillStyle = CONFIG.accent; c.beginPath(); c.moveTo(cx, cy - 7); c.lineTo(cx + 5, cy + 5); c.lineTo(cx - 5, cy + 5); c.closePath(); c.fill();
+}
+radar.addEventListener('click', (e) => {
+  const r = radar.getBoundingClientRect(), k = RS / r.width, x = (e.clientX - r.left) * k, y = (e.clientY - r.top) * k;
+  let best = null, bd = 18;
+  radarDots.forEach((d) => { const dd = Math.hypot(d.x - x, d.y - y); if (dd < bd) { bd = dd; best = d.i; } });
+  if (best !== null) goTo(best);
+});
+const chips = document.getElementById('chips');
+HOUSES.forEach((hs, i) => {
+  const b = document.createElement('button'), dot = document.createElement('i');
+  dot.style.background = hs.color; b.append(dot, hs.name); b.addEventListener('click', () => goTo(i)); chips.append(b);
+});
+// klik på selve kloden: hus eller markør
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+renderer.domElement.addEventListener('click', (e) => {
+  if (mode !== 'ride') return;
+  ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(houseGroups, true)[0]; if (!hit) return;
+  let o = hit.object; while (o && !houseGroups.includes(o)) o = o.parent;
+  if (o) goTo(houseGroups.indexOf(o));
+});
+
+function frame(dt) {
+  runTweens(dt); clouds.rotation.y += dt * .012;
+  if (mode === 'ride') { step(dt); followCam(p, h, dt, 9.5, 5.2, 3.2, 1.3, 1.5); updateCard(); }
+  else if (mode === 'busy') followCam(follow.p, follow.h, dt, 5.5, 3.0, 1.8, 1.3, 1.5);
+  const tt = performance.now();
+  beacons.forEach((b, k) => { b.position.y = b.userData.base + Math.sin(tt * .003 + k * 1.7) * .35; b.rotation.y += dt * 1.2; });
+  radarBox.style.opacity = mode === 'ride' ? 1 : 0; radarBox.style.pointerEvents = mode === 'ride' ? 'auto' : 'none';
+  if (mode === 'ride') drawRadar(tt);
+  renderer.render(scene, mode === 'inside' ? icam : camera);
+}
+
+scene.traverse((o) => {
+  if (o.isMesh && o !== planetMesh && o.parent !== skyGroup && !o.material.isMeshBasicMaterial && !o.material.isShaderMaterial && o.material !== inkMat && !o.isInstancedMesh) { o.castShadow = true; o.receiveShadow = true; }
+});
+planetMesh.receiveShadow = true;
+clouds.traverse((o) => { o.castShadow = false; o.receiveShadow = false; });
+camPos.copy(camTarget(p, h, 9.5, 5.2, 3.2));
+let last = performance.now();
+renderer.setAnimationLoop((now) => {
+  const dt = Math.min((now - last) / 1000, 0.05); last = now;
+  frame(dt);
+});
+</script>
+</body>
+</html>
