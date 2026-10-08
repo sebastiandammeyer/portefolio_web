@@ -25,6 +25,10 @@
   #scene{position:relative;height:520vh}
   #stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;
     background:radial-gradient(120% 80% at 50% 0%,#2a1d12 0%,#0a0a0b 60%)}
+  #p1{position:absolute;inset:0;pointer-events:none;background:#4c4846}
+  #vid{position:absolute;inset:0;width:100%;height:100%;filter:brightness(.5) contrast(1.05) saturate(.92)}
+  #vig{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 42%,rgba(10,10,11,0) 50%,rgba(10,10,11,.7) 100%),linear-gradient(to bottom,rgba(10,10,11,0) 52%,rgba(10,10,11,.92) 100%)}
+  #rig{opacity:0}
   #floor{position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,.55))}
   #rig{position:absolute;left:50%;top:15vh;top:15svh;width:min(92vw,91vh,1250px);aspect-ratio:1980/1130;
     transform:translateX(-50%);perspective:1400px}
@@ -88,6 +92,7 @@
 
 <div id="scene">
   <div id="stage">
+    <div id="p1"><canvas id="vid"></canvas><div id="vig"></div></div>
     <div id="floor"></div>
     <div id="rig" aria-hidden="true">
       <div id="shadow"></div>
@@ -188,7 +193,46 @@
 
   const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
   const win = (x,a,b) => Math.min(1, Math.max(0, (x-a)/(b-a)));
-  const W = { book:[.08,.30], batteri:[.28,.50], styr:[.48,.70], front:[.68,.90] };
+  // Første del af scrollen er videoen (p 0 til .30). Derefter går den over i de klippede lag, som skilles ad.
+  const VEND = .30, W = { book:[.38,.52], batteri:[.50,.64], styr:[.62,.76], front:[.74,.90] };
+  const FRAMES = 96, frames = [];
+  let vidOK = true, lastKey = '';
+  const vid = document.getElementById('vid'), vctx = vid.getContext('2d'), p1 = document.getElementById('p1');
+  const rigEl = document.getElementById('rig'), stageEl = document.getElementById('stage');
+  for (let i=0;i<FRAMES;i++){
+    const im = new Image(); im.decoding = 'async'; im.src = 'assets/video/f'+String(i).padStart(3,'0')+'.webp';
+    if (i===0){ im.onerror = () => { vidOK = false; draw(); }; im.onload = () => { lastKey=''; draw(); }; }
+    frames.push(im);
+  }
+  // Videoens billedfelt (1100 x 640 px) i cyklens koordinater (samme som lagene)
+  const VW = { x:-56.4, y:385.6, w:2166.5, h:1260.5 };
+  // Blød kant på videoen, så rammen ikke kan ses mod resten af scenen
+  const feather = document.createElement('canvas'), fctx = feather.getContext('2d');
+  const maskC = document.createElement('canvas'); maskC.width = 1100; maskC.height = 640;
+  { const m = maskC.getContext('2d'), fx = 170, fy = 110;
+    m.fillStyle = '#fff'; m.fillRect(0,0,1100,640);
+    m.globalCompositeOperation = 'destination-in';
+    let g = m.createLinearGradient(0,0,fx,0); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'#000'); m.fillStyle=g; m.fillRect(0,0,1100,640);
+    g = m.createLinearGradient(1100,0,1100-fx,0); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'#000'); m.fillStyle=g; m.fillRect(0,0,1100,640);
+    g = m.createLinearGradient(0,0,0,fy); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'#000'); m.fillStyle=g; m.fillRect(0,0,1100,640);
+    g = m.createLinearGradient(0,640,0,640-fy); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'#000'); m.fillStyle=g; m.fillRect(0,0,1100,640);
+  }
+  feather.width = 1100; feather.height = 640;
+  function drawVideo(fi){
+    const sr = stageEl.getBoundingClientRect(), rr = rigEl.getBoundingClientRect();
+    const dpr = Math.min(devicePixelRatio||1, 2), cw = Math.round(sr.width*dpr), ch = Math.round(sr.height*dpr);
+    const key = fi+'|'+cw+'x'+ch+'|'+Math.round(rr.left)+'|'+Math.round(rr.width);
+    if (key === lastKey) return; lastKey = key;
+    if (vid.width !== cw || vid.height !== ch){ vid.width = cw; vid.height = ch; }
+    const g = vctx.createLinearGradient(0,0,0,ch); g.addColorStop(0,'rgb(151,142,138)'); g.addColorStop(1,'rgb(172,163,159)');
+    vctx.fillStyle = g; vctx.fillRect(0,0,cw,ch);
+    let im = frames[fi]; if (!im.complete || !im.naturalWidth) { for (let j=fi;j>=0;j--) if (frames[j].complete && frames[j].naturalWidth){ im = frames[j]; break; } else im = null; }
+    if (!im) return;
+    const s = rr.width/WW*dpr, ox = (rr.left-sr.left)*dpr, oy = (rr.top-sr.top)*dpr;
+    fctx.globalCompositeOperation = 'source-over'; fctx.clearRect(0,0,1100,640); fctx.drawImage(im,0,0);
+    fctx.globalCompositeOperation = 'destination-in'; fctx.drawImage(maskC,0,0);
+    vctx.drawImage(feather, ox+(VW.x-X0)*s, oy+(VW.y-Y0)*s, VW.w*s, VW.h*s);
+  }
   let target = 0, p = 0, running = false;
 
   function readScroll(){
@@ -203,11 +247,17 @@
   function draw(){
     const rw = document.getElementById('rig').clientWidth, u = rw/100; // 1u = 1 % af bredden
     const mx = innerWidth < 760 ? .5 : 1; // mindre sideværts bevægelse på smalle skærme
-    const spread = ease(win(p,.02,.10));
-    bike.style.transform = `rotateY(${-16 + spread*10 + Math.sin(p*3)*2}deg) rotateX(4deg)`;
+    // Overgang fra video til lag
+    const kk = vidOK ? ease(win(p,VEND,VEND+.07)) : 1;
+    drawVideo(Math.min(FRAMES-1, Math.round(win(p,0,VEND)*(FRAMES-1))));
+    p1.style.opacity = String(1-kk); p1.style.visibility = kk>=1 ? 'hidden' : 'visible';
+    rigEl.style.opacity = String(kk);
+    const settle = 75*(rw/WW)*(1-ease(win(p,VEND,VEND+.10))); // videoens cykel har rullet lidt frem
+    const ang = -10 - 24*ease(win(p,.36,.62)) + 14*ease(win(p,.62,.92));
+    bike.style.transform = `translateX(${settle}px) rotateY(${ang}deg) rotateX(4deg)`;
 
     const kb = ease(win(p,...W.book));
-    book.style.opacity = String(win(p,.02,.08));
+    book.style.opacity = '1';
     book.style.transform = `translate3d(${-kb*4*u*mx}px,${-kb*17*u}px,${kb*160}px) rotate(${-8 + kb*-14}deg)`;
 
     const ke = ease(win(p,...W.batteri));
@@ -227,7 +277,7 @@
       el[n].style.transform = `translate(${(vx*c-vy*sn-vx)*k}px,${(vx*sn+vy*c-vy)*k}px)`;
     chainLinks.style.strokeDashoffset = String(-70*rad); // kæden følger klingen (radius 70)
 
-    const idx = p<.08 ? -1 : p<.30 ? 0 : p<.50 ? 1 : p<.70 ? 2 : 3;
+    const idx = p<.38 ? -1 : p<.50 ? 0 : p<.62 ? 1 : p<.76 ? 2 : 3;
     labels.forEach((l,i) => l.classList.toggle('on', i===idx));
     const lit = (chars, k) => chars.forEach((c,i) => c.classList.toggle('lit', i < k*chars.length+0.001));
     h1.parentElement.style.opacity = String(1 - win(p,.02,.08));
