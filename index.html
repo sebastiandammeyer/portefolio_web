@@ -31,6 +31,7 @@
   #bike{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
   #bike .ly{position:absolute;display:block;transform-origin:50% 50%;will-change:transform;
     filter:drop-shadow(0 14px 18px rgba(0,0,0,.5));user-select:none;-webkit-user-drag:none;pointer-events:none}
+  #chain{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45))}
   #shadow{position:absolute;left:5%;width:88%;top:88%;height:5%;border-radius:50%;
     background:radial-gradient(closest-side,rgba(0,0,0,.75),rgba(0,0,0,0));transform:translateZ(-40px)}
   #book{position:absolute;left:54%;top:41%;width:9%;aspect-ratio:1.25/1;opacity:0;transform-origin:50% 100%;will-change:transform,opacity;
@@ -95,6 +96,13 @@
         <div id="book">Speciale</div>
         <img class="ly" data-k="rear"    src="assets/lag/rear.webp"    alt="">
         <img class="ly" data-k="front"   src="assets/lag/front.webp"   alt="">
+        <svg id="chain" viewBox="40 440 1980 1130" aria-hidden="true">
+          <path id="chain-base" fill="none" stroke="#1c1b1a" stroke-width="9" stroke-linejoin="round"/>
+          <path id="chain-links" fill="none" stroke="#6d675c" stroke-width="5" stroke-dasharray="6 5"/>
+        </svg>
+        <img class="ly" data-k="krank"   src="assets/lag/krank.webp"   alt="">
+        <img class="ly" data-k="pedal_o" src="assets/lag/pedal_o.webp" alt="">
+        <img class="ly" data-k="pedal_n" src="assets/lag/pedal_n.webp" alt="">
         <img class="ly" data-k="batteri" src="assets/lag/batteri.webp" alt="">
         <img class="ly" data-k="styr"    src="assets/lag/styr.webp"    alt="">
       </div>
@@ -145,7 +153,8 @@
 (() => {
   // Position og størrelse (px i originalbilledet) for hvert lag. Verdenen er 1980 x 1130 px, startende i (40, 440).
   const X0 = 40, Y0 = 440, WW = 1980, HH = 1130;
-  const L = { stel:[49,575,1755,970], rear:[82,943,522,524], front:[1557,1042,442,444], batteri:[100,801,385,79], styr:[822,470,208,180] };
+  const L = { stel:[49,575,1751,970], rear:[82,943,522,524], front:[1557,1042,442,444], batteri:[102,801,383,79], styr:[821,471,209,179],
+             krank:[632,1084,210,298], pedal_o:[724,1055,94,39], pedal_n:[659,1378,101,53] }; // krank-gruppen er flyttet (+32,+8) så aksen sidder i krankhuset
   const el = {};
   document.querySelectorAll('.ly').forEach(img => {
     const [x,y,w,h] = L[img.dataset.k];
@@ -153,6 +162,10 @@
     img.style.width = (w/WW*100)+'%';     img.style.height = (h/HH*100)+'%';
     el[img.dataset.k] = img;
   });
+  { const [x,y,w,h] = L.krank; el.krank.style.transformOrigin = ((732-x)/w*100)+'% '+((1243-y)/h*100)+'%'; }
+  const chainD = 'M342 1127 L732 1173 A70 70 0 0 1 732 1313 L342 1283 A78 78 0 0 1 342 1127 Z';
+  const chainLinks = document.getElementById('chain-links');
+  document.getElementById('chain-base').setAttribute('d', chainD); chainLinks.setAttribute('d', chainD);
   const bike = document.getElementById('bike'), book = document.getElementById('book');
   const labels = [...document.querySelectorAll('.label')];
   const barEl = document.getElementById('bar'), h1 = document.getElementById('h1');
@@ -204,8 +217,15 @@
     el.styr.style.transform = T(0, ks*8*u*mx, -ks*10*u, ks*180, ks*10);
 
     const kf = ease(win(p,...W.front));
-    el.front.style.transform = `translate3d(${kf*22*u*mx}px,${kf*3*u}px,${kf*120}px) rotate(${p*1500}deg)`;
-    el.rear.style.transform = `rotate(${p*1100}deg)`;
+    el.front.style.transform = `translate3d(${kf*22*u*mx}px,${kf*3*u}px,${kf*120}px) rotate(${p*1275}deg)`;
+    el.rear.style.transform = `rotate(${p*1080}deg)`;
+
+    // Pedalarme, klinge og pedaler drejer om krankhuset. Pedalerne holder sig vandrette.
+    const th = p*1200, rad = th*Math.PI/180, c = Math.cos(rad), sn = Math.sin(rad), k = rw/WW;
+    el.krank.style.transform = `rotate(${th}deg)`;
+    for (const [n,vx,vy] of [['pedal_o',39,-169],['pedal_n',-23,161]])
+      el[n].style.transform = `translate(${(vx*c-vy*sn-vx)*k}px,${(vx*sn+vy*c-vy)*k}px)`;
+    chainLinks.style.strokeDashoffset = String(-70*rad); // kæden følger klingen (radius 70)
 
     const idx = p<.08 ? -1 : p<.30 ? 0 : p<.50 ? 1 : p<.70 ? 2 : 3;
     labels.forEach((l,i) => l.classList.toggle('on', i===idx));
