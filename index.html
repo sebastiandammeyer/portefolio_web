@@ -36,7 +36,7 @@
   #book{position:absolute;left:54%;top:41%;width:9%;aspect-ratio:1.25/1;opacity:0;transform-origin:50% 100%;will-change:transform,opacity;
     border-radius:3px 6px 6px 3px;background:linear-gradient(120deg,#1f3b6e,#2d56a3);
     box-shadow:inset 6px 0 0 rgba(0,0,0,.28),0 10px 18px rgba(0,0,0,.5),4px 4px 0 #efe8d6,6px 6px 0 #d8d0bb;
-    display:grid;place-items:center;color:#f2f1ec;font-size:clamp(7px,1vw,13px);font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-align:center;line-height:1.2}
+    display:grid;place-items:center;color:#f2f1ec;font-size:clamp(7px,1vw,13px);font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:center;overflow:hidden;line-height:1.2}
   #hero{position:absolute;left:0;right:0;bottom:6vh;text-align:center;pointer-events:none}
   #hero h1{font-size:clamp(36px,6.2vw,92px);letter-spacing:-.04em;line-height:.95;font-weight:600}
   #hero p{margin-top:14px;color:var(--mute);font-size:12px;letter-spacing:.2em;text-transform:uppercase}
@@ -52,7 +52,9 @@
   .l-right{right:6vw;bottom:7vh;text-align:right}
   .l-right a{margin-left:auto}
   @media (max-width:760px){
-    #rig{top:12vh;top:12svh;width:96vw}
+    #rig{top:24vh;top:24svh;width:min(96vw,79vh);width:min(96vw,79svh)}
+    .label h2{font-size:clamp(26px,8vw,40px)}
+    .label p{font-size:14px}
     .l-left,.l-right{left:5vw;right:5vw;top:auto;bottom:6vh;margin:0;text-align:left;max-width:none}
     .l-right a{margin-left:0}
   }
@@ -187,21 +189,22 @@
   const T = (k,x,y,z,r) => `translate3d(${x}px,${y}px,${z}px) rotate(${r}deg)`;
   function draw(){
     const rw = document.getElementById('rig').clientWidth, u = rw/100; // 1u = 1 % af bredden
+    const mx = innerWidth < 760 ? .5 : 1; // mindre sideværts bevægelse på smalle skærme
     const spread = ease(win(p,.02,.10));
     bike.style.transform = `rotateY(${-16 + spread*10 + Math.sin(p*3)*2}deg) rotateX(4deg)`;
 
     const kb = ease(win(p,...W.book));
     book.style.opacity = String(win(p,.02,.08));
-    book.style.transform = `translate3d(${-kb*4*u}px,${-kb*17*u}px,${kb*160}px) rotate(${-8 + kb*-14}deg)`;
+    book.style.transform = `translate3d(${-kb*4*u*mx}px,${-kb*17*u}px,${kb*160}px) rotate(${-8 + kb*-14}deg)`;
 
     const ke = ease(win(p,...W.batteri));
-    el.batteri.style.transform = T(0, -ke*9*u, -ke*17*u, ke*140, -ke*8);
+    el.batteri.style.transform = T(0, -ke*9*u*mx, -ke*17*u, ke*140, -ke*8);
 
     const ks = ease(win(p,...W.styr));
-    el.styr.style.transform = T(0, ks*8*u, -ks*10*u, ks*180, ks*10);
+    el.styr.style.transform = T(0, ks*8*u*mx, -ks*10*u, ks*180, ks*10);
 
     const kf = ease(win(p,...W.front));
-    el.front.style.transform = `translate3d(${kf*22*u}px,${kf*3*u}px,${kf*120}px) rotate(${p*1500}deg)`;
+    el.front.style.transform = `translate3d(${kf*22*u*mx}px,${kf*3*u}px,${kf*120}px) rotate(${p*1500}deg)`;
     el.rear.style.transform = `rotate(${p*1100}deg)`;
 
     const idx = p<.08 ? -1 : p<.30 ? 0 : p<.50 ? 1 : p<.70 ? 2 : 3;
