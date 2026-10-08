@@ -23,12 +23,24 @@
 
   /* Scroll-scene */
   #scene{position:relative;height:520vh}
-  #stage{position:sticky;top:0;height:100vh;overflow:hidden;
+  #stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;
     background:radial-gradient(120% 80% at 50% 0%,#2a1d12 0%,#0a0a0b 60%)}
-  #gl{position:absolute;inset:0;width:100%;height:100%;display:block}
-  #hero{position:absolute;left:0;right:0;bottom:6vh;text-align:center;pointer-events:none;transition:opacity .2s}
+  #floor{position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,.55))}
+  #rig{position:absolute;left:50%;top:15vh;top:15svh;width:min(92vw,91vh,1250px);aspect-ratio:1980/1130;
+    transform:translateX(-50%);perspective:1400px}
+  #bike{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
+  #bike .ly{position:absolute;display:block;transform-origin:50% 50%;will-change:transform;
+    filter:drop-shadow(0 14px 18px rgba(0,0,0,.5));user-select:none;-webkit-user-drag:none;pointer-events:none}
+  #shadow{position:absolute;left:5%;width:88%;top:88%;height:5%;border-radius:50%;
+    background:radial-gradient(closest-side,rgba(0,0,0,.75),rgba(0,0,0,0));transform:translateZ(-40px)}
+  #book{position:absolute;left:54%;top:41%;width:9%;aspect-ratio:1.25/1;opacity:0;transform-origin:50% 100%;will-change:transform,opacity;
+    border-radius:3px 6px 6px 3px;background:linear-gradient(120deg,#1f3b6e,#2d56a3);
+    box-shadow:inset 6px 0 0 rgba(0,0,0,.28),0 10px 18px rgba(0,0,0,.5),4px 4px 0 #efe8d6,6px 6px 0 #d8d0bb;
+    display:grid;place-items:center;color:#f2f1ec;font-size:clamp(7px,1vw,13px);font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-align:center;line-height:1.2}
+  #hero{position:absolute;left:0;right:0;bottom:6vh;text-align:center;pointer-events:none}
   #hero h1{font-size:clamp(36px,6.2vw,92px);letter-spacing:-.04em;line-height:.95;font-weight:600}
   #hero p{margin-top:14px;color:var(--mute);font-size:12px;letter-spacing:.2em;text-transform:uppercase}
+  .ch{opacity:.2;transition:opacity .15s}.ch.lit{opacity:1}
 
   .label{position:absolute;max-width:min(380px,80vw);opacity:0;transform:translateY(14px);transition:opacity .35s,transform .35s;pointer-events:none}
   .label.on{opacity:1;transform:none;pointer-events:auto}
@@ -40,6 +52,7 @@
   .l-right{right:6vw;bottom:7vh;text-align:right}
   .l-right a{margin-left:auto}
   @media (max-width:760px){
+    #rig{top:12vh;top:12svh;width:96vw}
     .l-left,.l-right{left:5vw;right:5vw;top:auto;bottom:6vh;margin:0;text-align:left;max-width:none}
     .l-right a{margin-left:0}
   }
@@ -59,7 +72,6 @@
   @media (max-width:520px){.bento{grid-template-columns:1fr}.card.big{grid-column:auto}}
   footer{padding:60px 6vw 80px;text-align:center;color:var(--mute);font-size:13px}
 
-  #nogl{display:none;position:absolute;inset:0;place-items:center;text-align:center;color:var(--mute);padding:20px}
 </style>
 </head>
 <body>
@@ -73,22 +85,32 @@
 
 <div id="scene">
   <div id="stage">
-    <canvas id="gl"></canvas>
-    <div id="nogl"><p>Din browser kunne ikke starte 3D. Scroll videre for resten af siden.</p></div>
+    <div id="floor"></div>
+    <div id="rig" aria-hidden="true">
+      <div id="shadow"></div>
+      <div id="bike">
+        <img class="ly" data-k="stel"    src="assets/lag/stel.webp"    alt="">
+        <div id="book">Speciale</div>
+        <img class="ly" data-k="rear"    src="assets/lag/rear.webp"    alt="">
+        <img class="ly" data-k="front"   src="assets/lag/front.webp"   alt="">
+        <img class="ly" data-k="batteri" src="assets/lag/batteri.webp" alt="">
+        <img class="ly" data-k="styr"    src="assets/lag/styr.webp"    alt="">
+      </div>
+    </div>
 
     <div id="hero">
-      <h1>Sebastian<br>Dammeyer</h1>
+      <h1 id="h1">Sebastian<br>Dammeyer</h1>
       <p>Scroll for at skille cyklen ad</p>
     </div>
 
     <div class="label l-right" data-i="0">
       <span class="num">01</span><h2>Speciale &amp; universitet</h2>
-      <p>Kvantitative metoder, forvaltningsret og mit speciale. Her ligger bogen på bagagebæreren.</p>
+      <p>Kvantitative metoder, forvaltningsret og mit speciale. Bogen løfter sig fra ladet.</p>
       <a href="#speciale">Se universitet</a>
     </div>
     <div class="label l-left" data-i="1">
       <span class="num">02</span><h2>Elektronik</h2>
-      <p>Controller, gashåndtag, lodning og ledningsføring. Alt det der får cyklen til at køre.</p>
+      <p>Batteri, controller, lodning og ledningsføring. Alt det der får cyklen til at køre.</p>
       <a href="#elektronik">Se elektronik</a>
     </div>
     <div class="label l-right" data-i="2">
@@ -117,157 +139,86 @@
 </section>
 <footer id="kontakt">Kontakt: kommer snart</footer>
 
-<script type="importmap">
-{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
-</script>
-<script type="module">
-import * as THREE from 'three';
+<script>
+(() => {
+  // Position og størrelse (px i originalbilledet) for hvert lag. Verdenen er 1980 x 1130 px, startende i (40, 440).
+  const X0 = 40, Y0 = 440, WW = 1980, HH = 1130;
+  const L = { stel:[49,575,1844,970], rear:[82,943,523,524], front:[1557,1041,442,445], batteri:[100,801,385,79], styr:[821,471,209,179] };
+  const el = {};
+  document.querySelectorAll('.ly').forEach(img => {
+    const [x,y,w,h] = L[img.dataset.k];
+    img.style.left = ((x-X0)/WW*100)+'%'; img.style.top = ((y-Y0)/HH*100)+'%';
+    img.style.width = (w/WW*100)+'%';     img.style.height = (h/HH*100)+'%';
+    el[img.dataset.k] = img;
+  });
+  const bike = document.getElementById('bike'), book = document.getElementById('book');
+  const labels = [...document.querySelectorAll('.label')];
+  const barEl = document.getElementById('bar'), h1 = document.getElementById('h1');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const canvas = document.getElementById('gl');
-let renderer;
-try {
-  renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
-} catch(e){
-  document.getElementById('nogl').style.display = 'grid';
-  throw e;
-}
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
-
-scene.add(new THREE.HemisphereLight(0xffe2c4, 0x1a1a22, 1.1));
-const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(4,6,5); scene.add(key);
-const rim = new THREE.DirectionalLight(0xb6ff1a, 1.4); rim.position.set(-5,2,-4); scene.add(rim);
-
-const mat = (c, m=0.4, r=0.5) => new THREE.MeshStandardMaterial({color:c, metalness:m, roughness:r});
-const root = new THREE.Group(); scene.add(root);
-
-/* Stand-in long john. Hver del er sin egen gruppe og kan senere udskiftes af en GLB-model. */
-const parts = {};
-function part(name, obj, home, away){
-  const g = new THREE.Group(); g.add(obj);
-  g.position.copy(home); root.add(g);
-  parts[name] = {g, home:home.clone(), away:away.clone()};
-  return parts[name];
-}
-const V = (x,y,z)=>new THREE.Vector3(x,y,z);
-function box(w,h,d,m,x=0,y=0,z=0,rz=0){
-  const o = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), m); o.position.set(x,y,z); o.rotation.z = rz; return o;
-}
-function wheel(r, tire=0x0c0c0e){
-  const g = new THREE.Group();
-  g.add(new THREE.Mesh(new THREE.TorusGeometry(r,0.085,16,56), mat(tire,.1,.9)));
-  g.add(new THREE.Mesh(new THREE.TorusGeometry(r-0.09,0.025,8,56), mat(0xb9bcc2,.9,.25)));
-  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.3,16), mat(0xb6ff1a,.8,.3));
-  hub.rotation.x = Math.PI/2; g.add(hub);
-  for (let i=0;i<16;i++){
-    const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,r-0.1,4), mat(0xb9bcc2,.9,.3));
-    sp.position.set(Math.cos(i*Math.PI/8)*(r-0.1)/2, Math.sin(i*Math.PI/8)*(r-0.1)/2, 0);
-    sp.rotation.z = i*Math.PI/8 - Math.PI/2; g.add(sp);
+  // Tekst der tændes bogstav for bogstav efter scroll
+  function split(node){
+    const out = [];
+    [...node.childNodes].forEach(n => {
+      if (n.nodeType === 3){
+        const f = document.createDocumentFragment();
+        [...n.textContent].forEach(c => { const s = document.createElement('span'); s.className='ch'; s.textContent=c; f.appendChild(s); out.push(s); });
+        n.replaceWith(f);
+      } else if (n.nodeType === 1 && n.tagName !== 'BR') out.push(...split(n));
+    });
+    return out;
   }
-  return g;
-}
+  split(h1).forEach(c => c.classList.add('lit'));
+  const lblCh = labels.map(l => split(l.querySelector('h2')));
 
-// Ramme: lang bjælke, ladkasse foran, styrerør, sadel, bagfælg-holder
-const frame = new THREE.Group();
-const steel = mat(0x2a2d33,.75,.35), wood = mat(0xb98a4e,.05,.75), woodD = mat(0x8a6232,.05,.8);
-frame.add(box(5.2,0.12,0.22,steel,0.4,-0.1,0));                       // lang bjælke
-frame.add(box(0.12,1.0,0.2,steel,-1.0,0.4,0,-0.2));                   // sadelrør
-frame.add(box(0.5,0.08,0.3,mat(0x111114,.1,.9),-1.12,0.95,0));        // sadel
-frame.add(box(0.1,1.5,0.12,steel,3.05,0.65,0,-0.22));                 // styrerør / gaffel
-frame.add(box(0.1,0.1,1.0,steel,2.85,1.42,0));                        // styr
-// Ladkasse (åben foroven)
-const bx=1.75, by=0.28;
-frame.add(box(2.5,0.08,1.1,woodD,bx,by-0.3,0));                       // bund
-frame.add(box(2.5,0.5,0.07,wood,bx,by,0.55));                         // side
-frame.add(box(2.5,0.5,0.07,wood,bx,by,-0.55));                        // side
-frame.add(box(0.07,0.5,1.1,wood,bx-1.25,by,0));                       // bagende
-frame.add(box(0.07,0.5,1.1,wood,bx+1.25,by,0));                       // forende
-const rearW = wheel(0.8); rearW.position.set(-2.2,-0.1,0); frame.add(rearW);
-part('frame', frame, V(0,0,0), V(0,0,0));
+  const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+  const win = (x,a,b) => Math.min(1, Math.max(0, (x-a)/(b-a)));
+  const W = { book:[.08,.30], batteri:[.28,.50], styr:[.48,.70], front:[.68,.90] };
+  let target = 0, p = 0, running = false;
 
-// Bagagebærer + bog
-const rack = new THREE.Group();
-rack.add(box(1.0,0.05,0.5,steel,0,-0.07,0));
-rack.add(box(0.95,0.16,0.6,mat(0x1f3b6e,.1,.6),0,0.03,0));            // bog
-rack.add(box(0.9,0.12,0.55,mat(0xf1ead8,0,.9),0.02,0.03,0.0));        // sider
-part('book', rack, V(-2.2,0.82,0), V(-3.2,2.2,0.9));
-
-// Elektronik: batteri + controller
-const elec = new THREE.Group();
-elec.add(box(0.95,0.28,0.4,mat(0x16301a,.3,.5),0,0,0));
-const led = new THREE.Mesh(new THREE.SphereGeometry(0.045,12,12), new THREE.MeshBasicMaterial({color:0xb6ff1a}));
-led.position.set(0.32,0.17,0.2); elec.add(led);
-elec.add(box(0.35,0.12,0.3,mat(0xc8561a,.3,.5),-0.3,0.2,0));
-part('elec', elec, V(-0.35,0.1,0), V(-2.2,-2.1,1.1));
-
-// Tablet på styret
-const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.95,0.62,0.05), mat(0x0d0d10,.6,.2));
-const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.86,0.54), new THREE.MeshBasicMaterial({color:0x20451a}));
-scr.position.z = 0.028; tablet.add(scr);
-tablet.rotation.y = Math.PI/2;
-part('tablet', tablet, V(2.85,1.85,0), V(3.2,2.4,1.1));
-
-// Forhjul (lille)
-const front = wheel(0.55);
-part('front', front, V(3.45,-0.35,0), V(4.9,-1.5,1.3));
-
-/* Scroll-styring */
-const scrollEl = document.getElementById('scene');
-const labels = [...document.querySelectorAll('.label')];
-const hero = document.getElementById('hero');
-const barEl = document.getElementById('bar');
-let target = 0, p = 0;
-const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-function readScroll(){
-  const r = scrollEl.getBoundingClientRect();
-  const total = r.height - innerHeight;
-  target = Math.min(1, Math.max(0, -r.top / total));
-}
-addEventListener('scroll', readScroll, {passive:true});
-
-function resize(){
-  const w = innerWidth, h = innerHeight;
-  renderer.setSize(w,h,false);
-  camera.aspect = w/h;
-  camera.position.set(0, 0.4, w/h < 0.8 ? 19 : 12.5);
-  camera.updateProjectionMatrix();
-}
-addEventListener('resize', resize); resize(); readScroll();
-
-const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
-const win = (x,a,b) => Math.min(1, Math.max(0, (x-a)/(b-a)));
-// Hver del har sit eget tidsvindue af scrollen
-const windows = { book:[.08,.30], elec:[.28,.50], tablet:[.48,.70], front:[.68,.90] };
-
-function frameLoop(t){
-  p += (target - p) * (reduce ? 1 : 0.08);
-  const spreadAll = ease(win(p,.02,.10));
-
-  for (const [name, [a,b]] of Object.entries(windows)){
-    const o = parts[name], k = ease(win(p,a,b));
-    o.g.position.lerpVectors(o.home, o.away, k);
-    o.g.rotation.z = k * 0.25 * (name==='book' ? 1 : -1);
+  function readScroll(){
+    const r = document.getElementById('scene').getBoundingClientRect();
+    target = Math.min(1, Math.max(0, -r.top / (r.height - innerHeight)));
+    if (!running){ running = true; requestAnimationFrame(tick); }
   }
-  parts.front.g.children[0].rotation.z = -p * 22; // hjulene ruller
-  rearW.rotation.z = -p * 16;
+  addEventListener('scroll', readScroll, {passive:true});
+  addEventListener('resize', readScroll);
 
-  root.rotation.y = -0.45 + spreadAll * 0.35 + Math.sin(p*3)*0.06;
-  root.rotation.x = 0.08;
-  root.position.y = 0.7;
+  const T = (k,x,y,z,r) => `translate3d(${x}px,${y}px,${z}px) rotate(${r}deg)`;
+  function draw(){
+    const rw = document.getElementById('rig').clientWidth, u = rw/100; // 1u = 1 % af bredden
+    const spread = ease(win(p,.02,.10));
+    bike.style.transform = `rotateY(${-16 + spread*10 + Math.sin(p*3)*2}deg) rotateX(4deg)`;
 
-  // Aktivt label
-  const idx = p<.08 ? -1 : p<.30 ? 0 : p<.50 ? 1 : p<.70 ? 2 : p<.98 ? 3 : 3;
-  labels.forEach((el,i)=>el.classList.toggle('on', i===idx));
-  hero.style.opacity = String(1 - win(p,.01,.07));
-  barEl.style.width = (p*100)+'%';
+    const kb = ease(win(p,...W.book));
+    book.style.opacity = String(win(p,.02,.08));
+    book.style.transform = `translate3d(${-kb*4*u}px,${-kb*17*u}px,${kb*160}px) rotate(${-8 + kb*-14}deg)`;
 
-  renderer.render(scene, camera);
-  requestAnimationFrame(frameLoop);
-}
-requestAnimationFrame(frameLoop);
+    const ke = ease(win(p,...W.batteri));
+    el.batteri.style.transform = T(0, -ke*9*u, -ke*17*u, ke*140, -ke*8);
+
+    const ks = ease(win(p,...W.styr));
+    el.styr.style.transform = T(0, ks*8*u, -ks*10*u, ks*180, ks*10);
+
+    const kf = ease(win(p,...W.front));
+    el.front.style.transform = `translate3d(${kf*22*u}px,${kf*3*u}px,${kf*120}px) rotate(${p*1500}deg)`;
+    el.rear.style.transform = `rotate(${p*1100}deg)`;
+
+    const idx = p<.08 ? -1 : p<.30 ? 0 : p<.50 ? 1 : p<.70 ? 2 : 3;
+    labels.forEach((l,i) => l.classList.toggle('on', i===idx));
+    const lit = (chars, k) => chars.forEach((c,i) => c.classList.toggle('lit', i < k*chars.length+0.001));
+    h1.parentElement.style.opacity = String(1 - win(p,.02,.08));
+    Object.values(W).forEach((w,i) => lit(lblCh[i], win(p, w[0]-.02, w[0]+.10)));
+    barEl.style.width = (p*100)+'%';
+  }
+  function tick(){
+    p += (target - p) * (reduce ? 1 : 0.1);
+    if (Math.abs(target-p) < .0004) p = target;
+    draw();
+    if (p !== target) requestAnimationFrame(tick); else running = false;
+  }
+  readScroll();
+})();
 </script>
 </body>
 </html>
