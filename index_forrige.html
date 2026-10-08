@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sebastian | Portefølje</title>
+<meta name="description" content="Portefølje med skills, speciale, elektronik og cykler.">
+<style>
+  :root{
+    --bg:#0a0a0b; --fg:#f2f1ec; --mute:#8a8a85; --accent:#b6ff1a; --card:#141416; --line:#26262a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:auto}
+  body{background:var(--bg);color:var(--fg);font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+
+  nav{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:6px;align-items:center;
+    padding:8px 10px;border-radius:14px;background:rgba(30,30,33,.7);backdrop-filter:blur(10px);border:1px solid var(--line)}
+  nav .logo{font-weight:700;padding:6px 12px;letter-spacing:-.02em}
+  nav a.pill{font-size:13px;text-decoration:none;color:var(--mute);padding:7px 12px;border-radius:9px}
+  nav a.pill:hover{color:var(--fg)}
+  nav a.cta{background:var(--accent);color:#000;font-weight:600}
+
+  /* Scroll-scene */
+  #scene{position:relative;height:520vh}
+  #stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;
+    background:radial-gradient(120% 80% at 50% 0%,#2a1d12 0%,#0a0a0b 60%)}
+  #p1{position:absolute;inset:0;pointer-events:none;background:#4c4846}
+  #vid{position:absolute;inset:0;width:100%;height:100%;filter:brightness(.5) contrast(1.05) saturate(.92)}
+  #vig{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 42%,rgba(10,10,11,0) 50%,rgba(10,10,11,.7) 100%),linear-gradient(to bottom,rgba(10,10,11,0) 52%,rgba(10,10,11,.92) 100%)}
+  #rig{opacity:0}
+  #floor{position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,.55))}
+  #rig{position:absolute;left:50%;top:15vh;top:15svh;width:min(92vw,91vh,1250px);aspect-ratio:1980/1130;
+    transform:translateX(-50%);perspective:1400px}
+  #bike{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
+  #bike .ly{position:absolute;display:block;transform-origin:50% 50%;will-change:transform;
+    filter:drop-shadow(0 14px 18px rgba(0,0,0,.5));user-select:none;-webkit-user-drag:none;pointer-events:none}
+  #chain{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45))}
+  #shadow{position:absolute;left:5%;width:88%;top:88%;height:5%;border-radius:50%;
+    background:radial-gradient(closest-side,rgba(0,0,0,.75),rgba(0,0,0,0));transform:translateZ(-40px)}
+  #book{position:absolute;left:54%;top:41%;width:9%;aspect-ratio:1.25/1;opacity:0;transform-origin:50% 100%;will-change:transform,opacity;
+    border-radius:3px 6px 6px 3px;background:linear-gradient(120deg,#1f3b6e,#2d56a3);
+    box-shadow:inset 6px 0 0 rgba(0,0,0,.28),0 10px 18px rgba(0,0,0,.5),4px 4px 0 #efe8d6,6px 6px 0 #d8d0bb;
+    display:grid;place-items:center;color:#f2f1ec;font-size:clamp(7px,1vw,13px);font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:center;overflow:hidden;line-height:1.2}
+  #hero{position:absolute;left:0;right:0;bottom:6vh;text-align:center;pointer-events:none}
+  #hero h1{font-size:clamp(36px,6.2vw,92px);letter-spacing:-.04em;line-height:.95;font-weight:600}
+  #hero p{margin-top:14px;color:var(--mute);font-size:12px;letter-spacing:.2em;text-transform:uppercase}
+  .ch{opacity:.2;transition:opacity .15s}.ch.lit{opacity:1}
+
+  .label{position:absolute;max-width:min(380px,80vw);opacity:0;transform:translateY(14px);transition:opacity .35s,transform .35s;pointer-events:none}
+  .label.on{opacity:1;transform:none;pointer-events:auto}
+  .label .num{color:var(--accent);font-size:12px;letter-spacing:.2em}
+  .label h2{font-size:clamp(28px,4.2vw,56px);letter-spacing:-.03em;line-height:1;margin:8px 0 10px;font-weight:600}
+  .label p{color:var(--mute);line-height:1.5;font-size:15px}
+  .label a{display:inline-block;margin-top:14px;font-size:13px;font-weight:600;color:#000;background:var(--accent);padding:9px 14px;border-radius:10px;text-decoration:none}
+  .l-left{left:6vw;bottom:7vh}
+  .l-right{right:6vw;bottom:7vh;text-align:right}
+  .l-right a{margin-left:auto}
+  @media (max-width:760px){
+    #rig{top:24vh;top:24svh;width:min(96vw,79vh);width:min(96vw,79svh)}
+    .label h2{font-size:clamp(26px,8vw,40px)}
+    .label p{font-size:14px}
+    .l-left,.l-right{left:5vw;right:5vw;top:auto;bottom:6vh;margin:0;text-align:left;max-width:none}
+    .l-right a{margin-left:0}
+  }
+  #bar{position:absolute;left:0;bottom:0;height:3px;background:var(--accent);width:0}
+
+  /* Efter scenen */
+  section.grid{padding:14vh 6vw;max-width:1200px;margin:0 auto}
+  section.grid h3{font-size:clamp(28px,4vw,48px);letter-spacing:-.03em;margin-bottom:28px;font-weight:600}
+  .bento{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;min-height:200px;transition:transform .25s,border-color .25s}
+  .card:hover{transform:translateY(-4px);border-color:var(--accent)}
+  .card.big{grid-column:span 2}
+  .card small{color:var(--accent);letter-spacing:.18em;font-size:11px}
+  .card h4{font-size:22px;margin:10px 0 8px;letter-spacing:-.02em}
+  .card p{color:var(--mute);font-size:14px;line-height:1.5}
+  @media (max-width:860px){.bento{grid-template-columns:1fr 1fr}}
+  @media (max-width:520px){.bento{grid-template-columns:1fr}.card.big{grid-column:auto}}
+  footer{padding:60px 6vw 80px;text-align:center;color:var(--mute);font-size:13px}
+
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">Sebastian</span>
+  <a class="pill" href="#skills">Skills</a>
+  <a class="pill" href="#om">Om</a>
+  <a class="pill cta" href="#kontakt">Kontakt</a>
+</nav>
+
+<div id="scene">
+  <div id="stage">
+    <div id="p1"><canvas id="vid"></canvas><div id="vig"></div></div>
+    <div id="floor"></div>
+    <div id="rig" aria-hidden="true">
+      <div id="shadow"></div>
+      <div id="bike">
+        <img class="ly" data-k="stel"    src="assets/lag/stel.webp"    alt="">
+        <div id="book">Speciale</div>
+        <img class="ly" data-k="rear"    src="assets/lag/rear.webp"    alt="">
+        <img class="ly" data-k="front"   src="assets/lag/front.webp"   alt="">
+        <svg id="chain" viewBox="40 440 1980 1130" aria-hidden="true">
+          <path id="chain-base" fill="none" stroke="#1c1b1a" stroke-width="9" stroke-linejoin="round"/>
+          <path id="chain-links" fill="none" stroke="#6d675c" stroke-width="5" stroke-dasharray="6 5"/>
+        </svg>
+        <img class="ly" data-k="krank"   src="assets/lag/krank.webp"   alt="">
+        <img class="ly" data-k="pedal_o" src="assets/lag/pedal_o.webp" alt="">
+        <img class="ly" data-k="pedal_n" src="assets/lag/pedal_n.webp" alt="">
+        <img class="ly" data-k="batteri" src="assets/lag/batteri.webp" alt="">
+        <img class="ly" data-k="styr"    src="assets/lag/styr.webp"    alt="">
+      </div>
+    </div>
+
+    <div id="hero">
+      <h1 id="h1">Sebastian<br>Dammeyer</h1>
+      <p>Scroll for at skille cyklen ad</p>
+    </div>
+
+    <div class="label l-right" data-i="0">
+      <span class="num">01</span><h2>Speciale &amp; universitet</h2>
+      <p>Kvantitative metoder, forvaltningsret og mit speciale. Bogen løfter sig fra ladet.</p>
+      <a href="#speciale">Se universitet</a>
+    </div>
+    <div class="label l-left" data-i="1">
+      <span class="num">02</span><h2>Elektronik</h2>
+      <p>Batteri, controller, lodning og ledningsføring. Alt det der får cyklen til at køre.</p>
+      <a href="#elektronik">Se elektronik</a>
+    </div>
+    <div class="label l-right" data-i="2">
+      <span class="num">03</span><h2>Claude, skills &amp; mods</h2>
+      <p>Tabletten på styret bliver til computeren: skills, plugins og små værktøjer jeg bygger.</p>
+      <a href="#skills">Se projekter</a>
+    </div>
+    <div class="label l-left" data-i="3">
+      <span class="num">04</span><h2>Mine cykler</h2>
+      <p>Hjulet ruller ud som en samling af de cykler jeg har bygget og istandsat.</p>
+      <a href="#cykler">Se cykler</a>
+    </div>
+    <div id="bar"></div>
+  </div>
+</div>
+
+<section class="grid" id="skills">
+  <h3>Områder</h3>
+  <div class="bento">
+    <div class="card big" id="skills-card"><small>CLAUDE</small><h4>Skills, plugins &amp; mods</h4><p>Pladsholder. Her kommer projekter og skærmbilleder.</p></div>
+    <div class="card" id="speciale"><small>UNIVERSITET</small><h4>Speciale</h4><p>Pladsholder.</p></div>
+    <div class="card" id="elektronik"><small>ELEKTRONIK</small><h4>El &amp; lodning</h4><p>Pladsholder.</p></div>
+    <div class="card big" id="cykler"><small>CYKLER</small><h4>Cykel-portefølje</h4><p>Pladsholder.</p></div>
+    <div class="card" id="om"><small>OM MIG</small><h4>Hvem jeg er</h4><p>Pladsholder.</p></div>
+  </div>
+</section>
+<footer id="kontakt">Kontakt: kommer snart</footer>
+
+<script>
+(() => {
+  // Position og størrelse (px i originalbilledet) for hvert lag. Verdenen er 1980 x 1130 px, startende i (40, 440).
+  const X0 = 40, Y0 = 440, WW = 1980, HH = 1130;
+  const L = { stel:[49,575,1751,970], rear:[82,943,522,524], front:[1557,1042,442,444], batteri:[102,801,383,79], styr:[821,471,209,179],
+             krank:[632,1084,210,298], pedal_o:[724,1055,94,39], pedal_n:[659,1378,101,53] }; // krank-gruppen er flyttet (+32,+8) så aksen sidder i krankhuset
+  const el = {};
+  document.querySelectorAll('.ly').forEach(img => {
+    const [x,y,w,h] = L[img.dataset.k];
+    img.style.left = ((x-X0)/WW*100)+'%'; img.style.top = ((y-Y0)/HH*100)+'%';
+    img.style.width = (w/WW*100)+'%';     img.style.height = (h/HH*100)+'%';
+    el[img.dataset.k] = img;
+  });
+  { const [x,y,w,h] = L.krank; el.krank.style.transformOrigin = ((732-x)/w*100)+'% '+((1243-y)/h*100)+'%'; }
+  const chainD = 'M342 1127 L732 1173 A70 70 0 0 1 732 1313 L342 1283 A78 78 0 0 1 342 1127 Z';
+  const chainLinks = document.getElementById('chain-links');
+  document.getElementById('chain-base').setAttribute('d', chainD); chainLinks.setAttribute('d', chainD);
+  const bike = document.getElementById('bike'), book = document.getElementById('book');
+  const labels = [...document.querySelectorAll('.label')];
+  const barEl = document.getElementById('bar'), h1 = document.getElementById('h1');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Tekst der tændes bogstav for bogstav efter scroll
+  function split(node){
+    const out = [];
+    [...node.childNodes].forEach(n => {
+      if (n.nodeType === 3){
+        const f = document.createDocumentFragment();
+        [...n.textContent].forEach(c => { const s = document.createElement('span'); s.className='ch'; s.textContent=c; f.appendChild(s); out.push(s); });
+        n.replaceWith(f);
+      } else if (n.nodeType === 1 && n.tagName !== 'BR') out.push(...split(n));
+    });
+    return out;
+  }
+  split(h1).forEach(c => c.classList.add('lit'));
+  const lblCh = labels.map(l => split(l.querySelector('h2')));
+
+  const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+  const win = (x,a,b) => Math.min(1, Math.max(0, (x-a)/(b-a)));
+  // Første del af scrollen er videoen (p 0 til .30). Derefter går den over i de klippede lag, som skilles ad.
+  const VEND = .30, W = { book:[.38,.52], batteri:[.50,.64], styr:[.62,.76], front:[.74,.90] };
+  const FRAMES = 96, frames = [];
+  let vidOK = true, lastKey = '';
+  const vid = document.getElementById('vid'), vctx = vid.getContext('2d'), p1 = document.getElementById('p1');
+  const rigEl = document.getElementById('rig'), stageEl = document.getElementById('stage');
+  for (let i=0;i<FRAMES;i++){
+    const im = new Image(); im.decoding = 'async'; im.src = 'assets/video/f'+String(i).padStart(3,'0')+'.webp';
+    if (i===0){ im.onerror = () => { vidOK = false; draw(); }; im.onload = () => { lastKey=''; draw(); }; }
+    frames.push(im);
+  }
+  // Videoens billedfelt (1100 x 640 px) i cyklens koordinater (samme som lagene)
+  const VW = { x:-56.4, y:385.6, w:2166.5, h:1260.5 };
+  // Blød kant på videoen, så rammen ikke kan ses mod resten af scenen
+  const feather = document.createElement('canvas'), fctx = feather.getContext('2d');
+  const maskC = document.createElement('canvas'); maskC.width = 1100; maskC.height = 640;
+  { const m = maskC.getContext('2d'), fx = 170, fy = 110;
+    m.fillStyle = '#fff'; m.fillRect(0,0,1100,640);
+    m.globalCompositeOperation = 'destination-in';
+    let g = m.createLinearGradient(0,0,fx,0); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'#000'); m.fillStyle=g; m.fillRect(0,0,1100,640);
+    g = m.createLinearGradient(1100,0,1100-fx,0); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'#000'); m.fillStyle=g; m.fillRect(0,0,1100,640);
+    g = m.createLinearGradient(0,0,0,fy); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'#000'); m.fillStyle=g; m.fillRect(0,0,1100,640);
+    g = m.createLinearGradient(0,640,0,640-fy); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'#000'); m.fillStyle=g; m.fillRect(0,0,1100,640);
+  }
+  feather.width = 1100; feather.height = 640;
+  function drawVideo(fi){
+    const sr = stageEl.getBoundingClientRect(), rr = rigEl.getBoundingClientRect();
+    const dpr = Math.min(devicePixelRatio||1, 2), cw = Math.round(sr.width*dpr), ch = Math.round(sr.height*dpr);
+    const key = fi+'|'+cw+'x'+ch+'|'+Math.round(rr.left)+'|'+Math.round(rr.width);
+    if (key === lastKey) return; lastKey = key;
+    if (vid.width !== cw || vid.height !== ch){ vid.width = cw; vid.height = ch; }
+    const g = vctx.createLinearGradient(0,0,0,ch); g.addColorStop(0,'rgb(151,142,138)'); g.addColorStop(1,'rgb(172,163,159)');
+    vctx.fillStyle = g; vctx.fillRect(0,0,cw,ch);
+    let im = frames[fi]; if (!im.complete || !im.naturalWidth) { for (let j=fi;j>=0;j--) if (frames[j].complete && frames[j].naturalWidth){ im = frames[j]; break; } else im = null; }
+    if (!im) return;
+    const s = rr.width/WW*dpr, ox = (rr.left-sr.left)*dpr, oy = (rr.top-sr.top)*dpr;
+    fctx.globalCompositeOperation = 'source-over'; fctx.clearRect(0,0,1100,640); fctx.drawImage(im,0,0);
+    fctx.globalCompositeOperation = 'destination-in'; fctx.drawImage(maskC,0,0);
+    vctx.drawImage(feather, ox+(VW.x-X0)*s, oy+(VW.y-Y0)*s, VW.w*s, VW.h*s);
+  }
+  let target = 0, p = 0, running = false;
+
+  function readScroll(){
+    const r = document.getElementById('scene').getBoundingClientRect();
+    target = Math.min(1, Math.max(0, -r.top / (r.height - innerHeight)));
+    if (!running){ running = true; requestAnimationFrame(tick); }
+  }
+  addEventListener('scroll', readScroll, {passive:true});
+  addEventListener('resize', readScroll);
+
+  const T = (k,x,y,z,r) => `translate3d(${x}px,${y}px,${z}px) rotate(${r}deg)`;
+  function draw(){
+    const rw = document.getElementById('rig').clientWidth, u = rw/100; // 1u = 1 % af bredden
+    const mx = innerWidth < 760 ? .5 : 1; // mindre sideværts bevægelse på smalle skærme
+    // Overgang fra video til lag
+    const kk = vidOK ? ease(win(p,VEND,VEND+.07)) : 1;
+    drawVideo(Math.min(FRAMES-1, Math.round(win(p,0,VEND)*(FRAMES-1))));
+    p1.style.opacity = String(1-kk); p1.style.visibility = kk>=1 ? 'hidden' : 'visible';
+    rigEl.style.opacity = String(kk);
+    const settle = 75*(rw/WW)*(1-ease(win(p,VEND,VEND+.10))); // videoens cykel har rullet lidt frem
+    const ang = -10 - 24*ease(win(p,.36,.62)) + 14*ease(win(p,.62,.92));
+    bike.style.transform = `translateX(${settle}px) rotateY(${ang}deg) rotateX(4deg)`;
+
+    const kb = ease(win(p,...W.book));
+    book.style.opacity = '1';
+    book.style.transform = `translate3d(${-kb*4*u*mx}px,${-kb*17*u}px,${kb*160}px) rotate(${-8 + kb*-14}deg)`;
+
+    const ke = ease(win(p,...W.batteri));
+    el.batteri.style.transform = T(0, -ke*9*u*mx, -ke*17*u, ke*140, -ke*8);
+
+    const ks = ease(win(p,...W.styr));
+    el.styr.style.transform = T(0, ks*8*u*mx, -ks*10*u, ks*180, ks*10);
+
+    const kf = ease(win(p,...W.front));
+    el.front.style.transform = `translate3d(${kf*22*u*mx}px,${kf*3*u}px,${kf*120}px) rotate(${p*1275}deg)`;
+    el.rear.style.transform = `rotate(${p*1080}deg)`;
+
+    // Pedalarme, klinge og pedaler drejer om krankhuset. Pedalerne holder sig vandrette.
+    const th = p*1200, rad = th*Math.PI/180, c = Math.cos(rad), sn = Math.sin(rad), k = rw/WW;
+    el.krank.style.transform = `rotate(${th}deg)`;
+    for (const [n,vx,vy] of [['pedal_o',39,-169],['pedal_n',-23,161]])
+      el[n].style.transform = `translate(${(vx*c-vy*sn-vx)*k}px,${(vx*sn+vy*c-vy)*k}px)`;
+    chainLinks.style.strokeDashoffset = String(-70*rad); // kæden følger klingen (radius 70)
+
+    const idx = p<.38 ? -1 : p<.50 ? 0 : p<.62 ? 1 : p<.76 ? 2 : 3;
+    labels.forEach((l,i) => l.classList.toggle('on', i===idx));
+    const lit = (chars, k) => chars.forEach((c,i) => c.classList.toggle('lit', i < k*chars.length+0.001));
+    h1.parentElement.style.opacity = String(1 - win(p,.02,.08));
+    Object.values(W).forEach((w,i) => lit(lblCh[i], win(p, w[0]-.02, w[0]+.10)));
+    barEl.style.width = (p*100)+'%';
+  }
+  function tick(){
+    p += (target - p) * (reduce ? 1 : 0.1);
+    if (Math.abs(target-p) < .0004) p = target;
+    draw();
+    if (p !== target) requestAnimationFrame(tick); else running = false;
+  }
+  readScroll();
+})();
+</script>
+</body>
+</html>

@@ -52,10 +52,25 @@
   #catalog .item h3 { margin: 0 0 4px; font-size: 17px; }
   #catalog .item p { margin: 0; font-size: 14px; line-height: 1.45; opacity: .85; }
   #catClose { margin-top: 10px; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--accent); background: none; color: var(--accent); font-weight: 700; cursor: pointer; }
+
+  #intro { position: fixed; inset: 0; z-index: 100; background: #86b9dd; transition: opacity 2.4s ease; cursor: pointer; }
+  #intro.gone { opacity: 0; pointer-events: none; }
+  #introBg { width: 100%; height: 100%; display: block; transform-origin: 50% 40%; animation: introKB 16s ease-out forwards; }
+  @keyframes introKB { from { transform: scale(1); } to { transform: scale(1.14); } }
+  #intro::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,22,36,.78), rgba(8,22,36,0) 58%), radial-gradient(ellipse at center, transparent 50%, rgba(8,22,36,.35) 100%); pointer-events: none; }
+  .introTxt { position: absolute; left: 6vw; bottom: 11vh; z-index: 2; max-width: 80vw; }
+  .introTxt h1 { margin: 0; font-size: clamp(38px, 7.2vw, 96px); line-height: 1; letter-spacing: -.02em; text-shadow: 0 4px 30px rgba(0,0,0,.35); }
+  .introTxt p { margin: 12px 0 22px; font-size: clamp(15px, 2vw, 22px); opacity: .9; }
+  .introTxt button { padding: 12px 22px; border-radius: 999px; border: 0; background: var(--accent); color: #101418; font-weight: 800; font-size: 16px; cursor: pointer; }
+  .introTxt small { display: block; margin-top: 12px; opacity: .65; font-size: 13px; }
+  body.embed .hud, body.embed #intro { display: none !important; }
+  body.embed:not(.play) #radarBox, body.embed:not(.play) #look, body.embed:not(.play) .hint, body.embed:not(.play) .pad, body.embed:not(.play) .card { visibility: hidden !important; }
+  body.embed { background: transparent; overscroll-behavior: none; } body.embed canvas { touch-action: none; } body.embed #vignette { opacity: .6; }
   @media (pointer: coarse) { .pad { display: grid; } .hint { display: none; } .card { right: auto; left: 16px; bottom: 150px; } }
 </style>
 </head>
 <body>
+<div id="intro"><canvas id="introBg"></canvas><div class="introTxt"><h1>Sebastian<br>Dammeyer</h1><p>Portefølje, cykler og små projekter. Aarhus.</p><button id="introGo">Kør ind</button><small>Eller tryk på en tast</small></div></div>
 <div class="hud">
   <a href="../index.html">← Til forsiden</a>
   <label>Himmel <input id="skyPick" type="color"></label>
@@ -192,8 +207,18 @@ function groundTexture() {
   }
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(10, 5); t.anisotropy = 4; return t;
 }
-const planetMat = new THREE.MeshToonMaterial({ color: CONFIG.ground, map: groundTexture(), gradientMap: gradient });
-const planetMesh = new THREE.Mesh(new THREE.SphereGeometry(R, 64, 40), planetMat);
+const planetMat = new THREE.MeshToonMaterial({ color: CONFIG.ground, map: groundTexture(), gradientMap: gradient, vertexColors: true });
+const planetGeo = new THREE.SphereGeometry(R, 128, 80);
+(function paintGround() {
+  const pa = planetGeo.attributes.position, cols = new Float32Array(pa.count * 3), nz = (x, y, z) => Math.sin(x * 1.7 + Math.sin(y * 2.1)) * Math.sin(y * 1.3 + Math.sin(z * 1.9)) * Math.sin(z * 1.6 + Math.sin(x * 2.3));
+  for (let i = 0; i < pa.count; i++) {
+    const x = pa.getX(i) / R, y = pa.getY(i) / R, z = pa.getZ(i) / R;
+    const v = .5 + .5 * (nz(x * 3, y * 3, z * 3) + .5 * nz(x * 7 + 3, y * 7, z * 7 + 1)) / 1.5, w = .5 + .5 * nz(x * 5 + 9, y * 5 - 2, z * 5 + 4);
+    cols[i * 3] = .86 + .14 * v + .08 * w; cols[i * 3 + 1] = .9 + .1 * v - .04 * w; cols[i * 3 + 2] = .76 + .2 * v - .1 * w;
+  }
+  planetGeo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+})();
+const planetMesh = new THREE.Mesh(planetGeo, planetMat);
 scene.add(planetMesh);
 
 // Hjælper: sæt ting på kloden, med toppen væk fra centrum
@@ -274,7 +299,9 @@ function makeHouse(h, idx) {
 HOUSES.forEach((h, i) => {
   const dir = new THREE.Vector3(...h.dir).normalize();
   houseDirs.push(dir);
-  const hg = makeHouse(h, i); place(hg, dir, Math.random() * 6.28); houseGroups.push(hg);
+  const nd = new THREE.Vector3(...HOUSES[(i + 1) % HOUSES.length].dir).normalize(), q0 = new THREE.Quaternion().setFromUnitVectors(Y, dir);
+  const Zw = new THREE.Vector3(0, 0, 1).applyQuaternion(q0), tt = nd.clone().sub(dir.clone().multiplyScalar(dir.dot(nd))).normalize();
+  const hg = makeHouse(h, i); place(hg, dir, Math.atan2(dir.dot(Zw.clone().cross(tt)), Zw.dot(tt))); houseGroups.push(hg);
   // flydende markør over huset (kan ses på afstand og klikkes)
   const pin = new THREE.Group();
   const pm = new THREE.MeshBasicMaterial({ color: h.color, fog: false });
@@ -282,6 +309,415 @@ HOUSES.forEach((h, i) => {
   const ball = new THREE.Mesh(new THREE.SphereGeometry(.7, 10, 8), pm); ball.position.y = 1.4; pin.add(ball);
   pin.position.y = hg.userData.top + 3.4; pin.userData.base = pin.position.y; hg.add(pin); beacons.push(pin);
 });
+
+
+// ===================== Verden: veje, søer, marker og landemærker =====================
+const WORLD = { roads: [], blockers: [], anim: [] };
+function blockedAt(d, margin = 0) {
+  for (const b of WORLD.blockers) if (b.d.dot(d) > Math.cos(Math.min(b.r + margin, 3))) return true;
+  const cr = Math.cos(.034 + margin);
+  for (const r of WORLD.roads) for (let i = 0; i < r.length; i++) if (r[i].dot(d) > cr) return true;
+  return false;
+}
+function basis(d) {
+  const u = Math.abs(d.y) < .9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+  u.cross(d).normalize();
+  return [u, d.clone().cross(u).normalize()];
+}
+const flatMat = (color, extra = {}) => {
+  const m = new THREE.MeshToonMaterial(Object.assign({ color, gradientMap: gradient, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }, extra));
+  return m;
+};
+function overlay(geo, mat) { const m = new THREE.Mesh(geo, mat); m.userData.flat = true; m.receiveShadow = true; scene.add(m); return m; }
+// Cirkulær flade lagt på kloden (rf gør kanten ujævn)
+function capMesh(d, a, y, color, rf) {
+  const [u, v] = basis(d), S = 56, K = Math.max(3, Math.ceil(a / .03));
+  const pos = [], nor = [], idx = [];
+  const pt = (r, phi) => d.clone().multiplyScalar(Math.cos(r)).addScaledVector(u, Math.cos(phi) * Math.sin(r)).addScaledVector(v, Math.sin(phi) * Math.sin(r)).normalize();
+  const push = (p) => { pos.push(p.x * (R + y), p.y * (R + y), p.z * (R + y)); nor.push(p.x, p.y, p.z); };
+  push(d);
+  for (let k = 1; k <= K; k++) for (let s = 0; s < S; s++) { const phi = s / S * 6.2832; push(pt(a * (rf ? rf(phi) : 1) * k / K, phi)); }
+  for (let s = 0; s < S; s++) idx.push(0, 1 + s, 1 + (s + 1) % S);
+  for (let k = 1; k < K; k++) for (let s = 0; s < S; s++) {
+    const a0 = 1 + (k - 1) * S + s, a1 = 1 + (k - 1) * S + (s + 1) % S, b0 = 1 + k * S + s, b1 = 1 + k * S + (s + 1) % S;
+    idx.push(a0, b0, a1, a1, b0, b1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.setIndex(idx);
+  return overlay(g, flatMat(color));
+}
+// Bånd (vej, sti, markstribe) langs en liste af enhedsvektorer
+function ribbon(pts, width, y, color, dash) {
+  const n = pts.length, pos = [], nor = [], idx = [];
+  for (let i = 0; i < n; i++) {
+    const P = pts[i], T = pts[Math.min(i + 1, n - 1)].clone().sub(pts[Math.max(i - 1, 0)]).normalize(), S = P.clone().cross(T).normalize();
+    const c = P.clone().multiplyScalar(R + y);
+    const l = c.clone().addScaledVector(S, width / 2).setLength(R + y), r = c.clone().addScaledVector(S, -width / 2).setLength(R + y);
+    pos.push(l.x, l.y, l.z, r.x, r.y, r.z); nor.push(P.x, P.y, P.z, P.x, P.y, P.z);
+  }
+  for (let i = 0; i < n - 1; i++) {
+    if (dash && (i % (dash[0] + dash[1])) >= dash[0]) continue;
+    const a = 2 * i, b = a + 1, c2 = a + 2, d2 = a + 3; idx.push(a, b, c2, b, d2, c2);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.setIndex(idx);
+  return overlay(g, flatMat(color));
+}
+function arcPoints(a, b, seed, trimA, trimB, wob = .028) {
+  const ang = a.angleTo(b), nrm = a.clone().cross(b).normalize(), N = Math.ceil(ang * R / .6), pts = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, d = t * ang;
+    if (d < trimA || ang - d < trimB) continue;
+    const P = a.clone().multiplyScalar(Math.sin(ang - d) / Math.sin(ang)).addScaledVector(b, Math.sin(d) / Math.sin(ang));
+    const off = Math.pow(Math.sin(Math.PI * t), .7) * (Math.sin(t * 9 + seed) * wob + Math.sin(t * 23 + seed * 2) * wob * .28);
+    pts.push(P.addScaledVector(nrm, off).normalize());
+  }
+  return pts;
+}
+const offDir = (c, x, z) => { const [u, v] = basis(c); return c.clone().multiplyScalar(R).addScaledVector(u, x).addScaledVector(v, z).normalize(); };
+function faceSpin(d, t) {
+  const q0 = new THREE.Quaternion().setFromUnitVectors(Y, d), Zw = new THREE.Vector3(0, 0, 1).applyQuaternion(q0);
+  const tt = t.clone().sub(d.clone().multiplyScalar(d.dot(t))).normalize();
+  return Math.atan2(d.dot(Zw.clone().cross(tt)), Zw.dot(tt));
+}
+function setOn(obj, dir, spin = 0, lift = 0) {
+  const n = dir.clone().normalize();
+  obj.position.copy(n).multiplyScalar(R + lift);
+  obj.quaternion.setFromUnitVectors(Y, n).multiply(new THREE.Quaternion().setFromAxisAngle(Y, spin));
+}
+function put(c, x, z, obj, spin = 0) { const d = offDir(c, x, z); place(obj, d, spin); return d; }
+const bx = (w, h, d, color, x, y, z, ink = 1.05, parent) => { const m = mesh(new THREE.BoxGeometry(w, h, d), color, ink); m.position.set(x, y, z); if (parent) parent.add(m); return m; };
+const cyl = (r0, r1, h, color, x, y, z, seg = 10, ink = 1.06, parent) => { const m = mesh(new THREE.CylinderGeometry(r0, r1, h, seg), color, ink); m.position.set(x, y, z); if (parent) parent.add(m); return m; };
+
+// ---- Zoner: hver er midten af en trekant mellem tre huse ----
+const NEG = (i) => houseDirs[i].clone().negate();
+const ZONES = { lake: NEG(0), forest: NEG(1), town: NEG(2), farm: NEG(3) };
+const ZONE_HOUSES = { lake: [1, 2, 3], forest: [0, 2, 3], town: [0, 1, 3], farm: [0, 1, 2] };
+const zoneMids = (name) => { const hs = ZONE_HOUSES[name], out = []; for (let i = 0; i < 3; i++) out.push(houseDirs[hs[i]].clone().add(houseDirs[hs[(i + 1) % 3]]).normalize()); return out; };
+const slotAngle = {};
+Object.keys(ZONES).forEach((k) => {
+  const c = ZONES[k], [u, v] = basis(c), m = zoneMids(k)[0];
+  const tm = m.clone().sub(c.clone().multiplyScalar(c.dot(m))).normalize();
+  slotAngle[k] = Math.atan2(tm.dot(v), tm.dot(u));
+});
+function slot(name, k, dist) {   // k = 0..2: mellem stierne
+  const c = ZONES[name], a = slotAngle[name] + Math.PI / 3 + k * 2.0944;
+  return offDir(c, Math.cos(a) * dist, Math.sin(a) * dist);
+}
+
+// ---- Veje mellem husene (tetraederets kanter), pladser foran husene ----
+const ROAD_EDGE = '#bfb59c', ROAD_TOP = '#e7dfc9', ROAD_LINE = '#fffbe8', PATH_COL = '#dfcb9f';
+const roadList = [];
+WORLD.blockers.push({ d: new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(1, 0, 0), -0.4).normalize(), r: .3 });
+for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) {
+  const pts = arcPoints(houseDirs[i], houseDirs[j], i * 3.1 + j * 1.7, .2, .2);
+  roadList.push({ i, j, pts }); WORLD.roads.push(pts);
+  ribbon(pts, 2.5, .05, ROAD_EDGE); ribbon(pts, 1.95, .065, ROAD_TOP); ribbon(pts, .14, .08, ROAD_LINE, [3, 3]);
+}
+houseDirs.forEach((d, i) => {
+  capMesh(d, .215, .045, '#cfc6ae'); capMesh(d, .19, .06, '#ece6d6');
+  WORLD.blockers.push({ d, r: .23 });
+});
+// Stier fra hver zones midte ud til de tre veje
+Object.keys(ZONES).forEach((k, zi) => {
+  const c = ZONES[k], hasLake = k === 'lake';
+  zoneMids(k).forEach((m, i) => {
+    const pts = arcPoints(c, m, zi * 5 + i * 2, hasLake ? .27 : .1, .02, .02);
+    WORLD.roads.push(pts); ribbon(pts, .95, .055, PATH_COL);
+  });
+  if (!hasLake) { capMesh(c, .095, .055, '#e4dccb'); capMesh(c, .08, .065, k === 'forest' ? '#bfa57a' : '#efe9da'); WORLD.blockers.push({ d: c, r: .1 }); }
+});
+
+// Lygtepæle langs vejene
+(function lamps() {
+  const items = [];
+  roadList.forEach((r, k) => {
+    for (let i = 8, side = 1; i < r.pts.length - 8; i += 11, side = -side) {
+      const P = r.pts[i], T = r.pts[i + 1].clone().sub(r.pts[i - 1]).normalize(), S = P.clone().cross(T).normalize();
+      items.push(P.clone().multiplyScalar(R).addScaledVector(S, side * 1.7).normalize());
+    }
+  });
+  const pole = new THREE.InstancedMesh(new THREE.CylinderGeometry(.06, .08, 2, 6).translate(0, 1, 0), toon('#3a3f47'), items.length);
+  const head = new THREE.InstancedMesh(new THREE.SphereGeometry(.24, 8, 6).translate(0, 2.1, 0), new THREE.MeshBasicMaterial({ color: '#fff0b0' }), items.length);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1);
+  items.forEach((d, i) => { q.setFromUnitVectors(Y, d); m.compose(d.clone().multiplyScalar(R), q, one); pole.setMatrixAt(i, m); head.setMatrixAt(i, m); });
+  pole.castShadow = true; scene.add(pole, head);
+})();
+
+// ---- Instancerede træer (få tegnekald) ----
+function buildTrees(list) {
+  const trunkG = new THREE.CylinderGeometry(.25, .35, 1.2, 6).translate(0, .6, 0), roundG = new THREE.IcosahedronGeometry(1.5, 0).translate(0, 2.5, 0);
+  const coneAG = new THREE.ConeGeometry(1.3, 2.2, 7).translate(0, 2.1, 0), coneBG = new THREE.ConeGeometry(1.0, 1.8, 7).translate(0, 3.2, 0);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), qs = new THREE.Quaternion(), sc = new THREE.Vector3(), col = new THREE.Color();
+  const mk = (geo, items, colors) => {
+    if (!items.length) return;
+    const im = new THREE.InstancedMesh(geo, toon('#ffffff'), items.length);
+    items.forEach((t, i) => {
+      q.setFromUnitVectors(Y, t.d); qs.setFromAxisAngle(Y, t.rot); q.multiply(qs); sc.setScalar(t.s);
+      m.compose(t.d.clone().multiplyScalar(R), q, sc); im.setMatrixAt(i, m); im.setColorAt(i, col.set(colors[(t.rot * 7 | 0) % colors.length]));
+    });
+    im.castShadow = true; im.receiveShadow = true; scene.add(im);
+    const ink = new THREE.InstancedMesh(geo.clone().scale(1.07, 1.07, 1.07), inkMat, items.length); ink.instanceMatrix = im.instanceMatrix; scene.add(ink);
+  };
+  const rounds = list.filter((t) => t.kind === 0), pines = list.filter((t) => t.kind === 1);
+  mk(trunkG, list, ['#7a5a3c', '#6d4f35']);
+  mk(roundG, rounds, ['#5f9a4b', '#74ad58', '#86b65a', '#5f9a4b', '#e0a85a']);
+  mk(coneAG, pines, ['#3f7a45', '#4a8a4c']); mk(coneBG, pines, ['#52934f', '#5fa055']);
+}
+const treeList = [];
+const addTree = (d, s, kind) => treeList.push({ d, s, kind, rot: Math.random() * 6.28 });
+// ---- Zone: sø med badebro, båd og ænder ----
+(function lakeZone() {
+  const c = ZONES.lake, rf = (phi) => 1 + .16 * Math.sin(3 * phi + .5) + .09 * Math.sin(5 * phi + 2), LR = .2;
+  capMesh(c, LR * 1.22, .05, '#e9dbab', rf); capMesh(c, LR, .08, '#6fb9d9', rf);
+  WORLD.blockers.push({ d: c, r: LR * 1.35 });
+  const waterRim = (phi) => R * Math.sin(LR * rf(phi));
+  // bro
+  const dockDir = slot('lake', 0, 9.5), dock = new THREE.Group();
+  for (let i = 0; i < 9; i++) bx(1.5, .14, .5, i % 2 ? '#a77d52' : '#b88c5e', 0, .38, -1.4 + i * .55, 0, dock);
+  [[-.7, -1.4], [.7, -1.4], [-.7, 2.8], [.7, 2.8]].forEach(([x, z]) => cyl(.09, .09, 1.2, '#6b4a2f', x, .2, z, 6, 0, dock));
+  place(dock, dockDir, faceSpin(dockDir, c)); WORLD.blockers.push({ d: dockDir, r: .05 });
+  // båd
+  const boat = new THREE.Group(), hull = bx(1.5, .5, 3.2, '#e4574b', 0, .22, 0, 1.08, boat);
+  bx(1.3, .12, 2.8, '#f4efe6', 0, .5, 0, 0, boat); const mast = cyl(.05, .05, 2.2, '#8a929c', 0, 1.5, .3, 6, 0, boat);
+  const sail = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.8), new THREE.MeshToonMaterial({ color: '#fff8e8', gradientMap: gradient, side: THREE.DoubleSide })); sail.position.set(.1, 1.7, .3); sail.rotation.y = Math.PI / 2; boat.add(sail);
+  scene.add(boat);
+  WORLD.anim.push((dt, t) => {
+    const a = t * .12, d = offDir(c, Math.cos(a) * 3.4, Math.sin(a) * 3.4), d2 = offDir(c, Math.cos(a + .05) * 3.4, Math.sin(a + .05) * 3.4);
+    setOn(boat, d, faceSpin(d, d2), .1 + Math.sin(t * 1.3) * .05); boat.rotateZ(Math.sin(t * 1.1) * .05);
+  });
+  // ænder
+  for (let k = 0; k < 4; k++) {
+    const duck = new THREE.Group();
+    const body = mesh(new THREE.SphereGeometry(.34, 8, 6), '#f7f3e6', 0); body.scale.set(1, .75, 1.35); body.position.y = .22; duck.add(body);
+    const hd = mesh(new THREE.SphereGeometry(.19, 8, 6), '#2f8f6a', 0); hd.position.set(0, .55, .38); duck.add(hd);
+    const bk = new THREE.Mesh(new THREE.ConeGeometry(.08, .22, 5), toon('#f2b21b')); bk.rotation.x = Math.PI / 2; bk.position.set(0, .52, .6); duck.add(bk);
+    scene.add(duck);
+    const rad = 4.8 + k * .7, ph = k * 1.9, sp = (k % 2 ? -1 : 1) * (.16 - k * .015);
+    WORLD.anim.push((dt, t) => { const a = ph + t * sp, d = offDir(c, Math.cos(a) * rad, Math.sin(a) * rad), d2 = offDir(c, Math.cos(a + .04 * Math.sign(sp)) * rad, Math.sin(a + .04 * Math.sign(sp)) * rad); setOn(duck, d, faceSpin(d, d2), .1 + Math.sin(t * 2 + k) * .03); });
+  }
+  // sivblade og åkander
+  const reeds = new THREE.InstancedMesh(new THREE.ConeGeometry(.07, 1.3, 4).translate(0, .65, 0), toon('#ffffff'), 90), pads = new THREE.InstancedMesh(new THREE.CylinderGeometry(.5, .5, .04, 10), toon('#ffffff'), 18);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), qs = new THREE.Quaternion(), sc = new THREE.Vector3(), col = new THREE.Color();
+  for (let i = 0; i < 90; i++) {
+    const phi = Math.random() * 6.28, rr = waterRim(phi) * (1.0 + Math.random() * .13), d = offDir(c, Math.cos(phi) * rr, Math.sin(phi) * rr);
+    q.setFromUnitVectors(Y, d); qs.setFromAxisAngle(Y, Math.random() * 6); q.multiply(qs); sc.setScalar(.7 + Math.random() * .8);
+    m.compose(d.clone().multiplyScalar(R), q, sc); reeds.setMatrixAt(i, m); reeds.setColorAt(i, col.set(['#6e9a4a', '#7fae52', '#5c8a40'][i % 3]));
+  }
+  for (let i = 0; i < 18; i++) {
+    const phi = Math.random() * 6.28, rr = Math.random() * waterRim(phi) * .75, d = offDir(c, Math.cos(phi) * rr, Math.sin(phi) * rr);
+    q.setFromUnitVectors(Y, d); sc.setScalar(.6 + Math.random() * .7); m.compose(d.clone().multiplyScalar(R + .1), q, sc); pads.setMatrixAt(i, m); pads.setColorAt(i, col.set(i % 5 ? '#4f9a58' : '#f2a7c5'));
+  }
+  scene.add(reeds, pads);
+})();
+
+// ---- Zone: skov med bål, telt og svampe ----
+(function forestZone() {
+  const c = ZONES.forest;
+  // bål
+  const fire = new THREE.Group();
+  for (let i = 0; i < 6; i++) { const lg = cyl(.12, .12, 1.4, '#6b4a2f', 0, .2, 0, 6, 0, fire); lg.rotation.z = Math.PI / 2 - .5; lg.rotation.y = i * 1.047; lg.position.set(Math.cos(i * 1.047) * .35, .22, Math.sin(i * 1.047) * .35); }
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(.5, 1.5, 7), new THREE.MeshBasicMaterial({ color: '#ff9a2a' })); flame.position.y = .9; fire.add(flame);
+  const flame2 = new THREE.Mesh(new THREE.ConeGeometry(.28, 1, 6), new THREE.MeshBasicMaterial({ color: '#ffe066' })); flame2.position.y = .75; fire.add(flame2);
+  place(fire, c, 0);
+  WORLD.anim.push((dt, t) => { flame.scale.set(1 + Math.sin(t * 13) * .08, 1 + Math.sin(t * 9.3) * .16, 1); flame2.scale.y = 1 + Math.sin(t * 17) * .2; });
+  // telt
+  const tent = new THREE.Group();
+  const prism = new THREE.Mesh(new THREE.CylinderGeometry(0, 2, 2.2, 4, 1), toon('#e4574b')); prism.rotation.y = Math.PI / 4; prism.position.y = 1.1; prism.castShadow = true; tent.add(prism);
+  bx(.8, 1.3, .1, '#2a2f36', 0, .65, 1.42, 0, tent); tent.children[tent.children.length - 1].rotation.x = -.05;
+  const td = slot('forest', 0, 7); place(tent, td, faceSpin(td, c));
+  // stammer som siddepladser
+  for (let i = 0; i < 3; i++) { const lg = new THREE.Group(); cyl(.5, .5, .55, '#a77d52', 0, .28, 0, 10, 1.07, lg); const cap = new THREE.Mesh(new THREE.CylinderGeometry(.46, .46, .02, 10), toon('#d9b88a')); cap.position.y = .56; lg.add(cap); const a = 1.2 + i * 1.5; put(c, Math.cos(a) * 3.1, Math.sin(a) * 3.1, lg, 0); }
+  // svampe
+  const caps = new THREE.InstancedMesh(new THREE.SphereGeometry(.24, 8, 5, 0, 6.283, 0, 1.6).translate(0, .32, 0), toon('#ffffff'), 60), stems = new THREE.InstancedMesh(new THREE.CylinderGeometry(.07, .09, .34, 6).translate(0, .17, 0), toon('#f2ecdc'), 60);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), col = new THREE.Color(); let n = 0;
+  for (let i = 0; i < 400 && n < 60; i++) {
+    const a = Math.random() * 6.28, rr = 4 + Math.random() * 20, d = offDir(c, Math.cos(a) * rr, Math.sin(a) * rr);
+    if (blockedAt(d, .02)) continue;
+    q.setFromUnitVectors(Y, d); sc.setScalar(.7 + Math.random() * 1.2); m.compose(d.clone().multiplyScalar(R), q, sc);
+    caps.setMatrixAt(n, m); stems.setMatrixAt(n, m); caps.setColorAt(n, col.set(n % 4 ? '#e4574b' : '#f2b21b')); n++;
+  }
+  caps.count = stems.count = n; scene.add(caps, stems);
+})();
+
+// ---- Zone: gård med vindmølle, marker, hø og køer ----
+(function farmZone() {
+  const c = ZONES.farm;
+  // vindmølle
+  const mill = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2.4, 7, 8), toon('#f2ece0')); body.position.y = 3.5; body.castShadow = true; mill.add(body);
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(1.9, 2.2, 8), toon('#c8604f')); roof.position.y = 8.1; roof.castShadow = true; mill.add(roof);
+  bx(1.1, 1.9, .2, '#5b3a29', 0, .95, 2.35, 0, mill);
+  const hub = new THREE.Group(); hub.position.set(0, 6.4, 1.8); mill.add(hub);
+  for (let i = 0; i < 4; i++) { const bl = new THREE.Group(); bl.rotation.z = i * Math.PI / 2; bx(.35, 3.4, .1, '#8a5a3a', 0, 1.9, 0, 0, bl); bx(.95, 2.6, .06, '#fff8e8', .5, 2.1, .05, 0, bl); hub.add(bl); }
+  cyl(.2, .2, .5, '#3a3f47', 0, 0, .1, 8, 0, hub).rotation.x = Math.PI / 2;
+  place(mill, c, faceSpin(c, slot('farm', 1, 20))); WORLD.blockers.push({ d: c, r: .1 });
+  WORLD.anim.push((dt) => { hub.rotation.z += dt * .6; });
+  // marker (striber)
+  const fields = [['#d9b84a', '#c9a43a'], ['#9a6f45', '#8a6039'], ['#7cc05a', '#68ab49']];
+  fields.forEach((cols, k) => {
+    const centre = slot('farm', k, 15.5), w = 7, l = 12, rot = slotAngle.farm + k * 2.09;
+    const stripes = 6; const [u, v] = basis(centre);
+    for (let j = 0; j < stripes; j++) {
+      const ox = (j - (stripes - 1) / 2) * 1.2, pts = [];
+      for (let s = -l / 2; s <= l / 2; s += .6) {
+        const p = centre.clone().multiplyScalar(R).addScaledVector(u, Math.cos(rot) * s - Math.sin(rot) * ox).addScaledVector(v, Math.sin(rot) * s + Math.cos(rot) * ox).normalize(); pts.push(p);
+      }
+      ribbon(pts, 1.05, .06 + k * .001, cols[j % 2]);
+    }
+    WORLD.blockers.push({ d: centre, r: .17 });
+    // hegn rundt om første mark
+    if (k === 0) {
+      const posts = new THREE.InstancedMesh(new THREE.CylinderGeometry(.07, .07, 1, 5).translate(0, .5, 0), toon('#a77d52'), 30), m = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1); let n = 0;
+      [[-1, -1, 1, -1], [1, -1, 1, 1], [1, 1, -1, 1], [-1, 1, -1, -1]].forEach(([x0, z0, x1, z1]) => {
+        for (let s = 0; s < 5; s++) {
+          const a = s / 5, X = (x0 + (x1 - x0) * a) * (w / 2 + .9), Z = (z0 + (z1 - z0) * a) * (l / 2 + .9);
+          const P = centre.clone().multiplyScalar(R).addScaledVector(u, Math.cos(rot) * Z - Math.sin(rot) * X).addScaledVector(v, Math.sin(rot) * Z + Math.cos(rot) * X).normalize();
+          q.setFromUnitVectors(Y, P); m.compose(P.multiplyScalar(R), q, one); posts.setMatrixAt(n++, m);
+        }
+      });
+      posts.count = n; scene.add(posts);
+    }
+  });
+  // høballer
+  const bales = new THREE.InstancedMesh(new THREE.CylinderGeometry(.55, .55, .9, 10).rotateZ(Math.PI / 2).translate(0, .55, 0), toon('#e6c45a'), 10), m = new THREE.Matrix4(), q = new THREE.Quaternion(), qs = new THREE.Quaternion(), sc = new THREE.Vector3(1, 1, 1);
+  for (let i = 0; i < 10; i++) { const d = offDir(c, 5 + (i % 5) * 1.5, -8 + Math.floor(i / 5) * 1.6 + (i % 2) * .4); q.setFromUnitVectors(Y, d); qs.setFromAxisAngle(Y, .4 + (i % 3)); q.multiply(qs); m.compose(d.clone().multiplyScalar(R), q, sc); bales.setMatrixAt(i, m); }
+  scene.add(bales); WORLD.blockers.push({ d: offDir(c, 8, -7.2), r: .1 });
+  // køer
+  for (let k = 0; k < 4; k++) {
+    const cow = new THREE.Group();
+    bx(1.1, .9, 1.9, '#fbf7ee', 0, 1.0, 0, 1.06, cow); bx(.9, .5, .5, '#2a2f36', .26, 1.2, .3, 0, cow);
+    const hd = bx(.7, .6, .7, '#fbf7ee', 0, 1.25, 1.2, 1.06, cow); bx(.4, .25, .1, '#f2a7b5', 0, 1.1, 1.58, 0, cow);
+    [[-.4, -.7], [.4, -.7], [-.4, .7], [.4, .7]].forEach(([x, z]) => bx(.2, .7, .2, '#fbf7ee', x, .35, z, 0, cow));
+    const d = slot('farm', 1, 12 + k * 1.6 + (k % 2) * 2), dd = d.clone();
+    place(cow, d, k * 1.7);
+    WORLD.anim.push((dt, t) => { hd.rotation.x = Math.sin(t * .8 + k * 2) * .18; hd.position.y = 1.25 - Math.max(0, Math.sin(t * .8 + k * 2)) * .2; });
+  }
+})();
+
+// ---- Zone: by med Aarhus Rådhus, fontæne, busstoppested og bænke ----
+(function townZone() {
+  const c = ZONES.town;
+  // fontæne på pladsen
+  const f = new THREE.Group();
+  cyl(1.9, 2.1, .6, '#d8d2c4', 0, .3, 0, 16, 1.05, f);
+  const water = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, .05, 16), new THREE.MeshToonMaterial({ color: '#7cc4e4', gradientMap: gradient })); water.position.y = .6; f.add(water);
+  cyl(.2, .3, 1.4, '#cfc9ba', 0, 1.1, 0, 8, 1.05, f);
+  const jet = new THREE.Mesh(new THREE.ConeGeometry(.3, 1, 8), new THREE.MeshBasicMaterial({ color: '#bfe8f7', transparent: true, opacity: .8 })); jet.position.y = 2.2; f.add(jet);
+  place(f, c, 0);
+  WORLD.anim.push((dt, t) => { jet.scale.y = 1 + Math.sin(t * 6) * .25; jet.position.y = 2.1 + Math.sin(t * 6) * .12; });
+
+  // Rådhuset
+  const hall = new THREE.Group(), stone = '#cdbfa6';
+  const tex = (draw, w, h) => { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; draw(cv.getContext('2d'), w, h); const t = new THREE.CanvasTexture(cv); t.anisotropy = 4; return t; };
+  const facade = tex((x, w, h) => {
+    x.fillStyle = stone; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 700; i++) { x.fillStyle = 'rgba(110,95,75,.09)'; x.fillRect(Math.random() * w, Math.random() * h, 5 + Math.random() * 12, 2 + Math.random() * 5); }
+    const cols = 12, cw = w / cols;
+    for (let i = 0; i < cols; i++) {
+      x.fillStyle = '#3a4a58'; x.fillRect(i * cw + cw * .2, 20, cw * .6, 46); x.fillStyle = '#f0e9d6'; x.fillRect(i * cw + cw * .15, 14, cw * .7, 6);
+      x.fillStyle = i % 3 === 1 ? '#f2c36a' : '#3a4a58'; x.fillRect(i * cw + cw * .2, 90, cw * .6, 50);
+    }
+  }, 768, 160);
+  const faceMat = new THREE.MeshToonMaterial({ map: facade, gradientMap: gradient });
+  bx(16, 5.4, 6, stone, 0, 2.7, 0, 1.03, hall);
+  const front = new THREE.Mesh(new THREE.PlaneGeometry(15.6, 4.9), faceMat); front.position.set(0, 2.9, 3.02); hall.add(front);
+  bx(16.5, .4, 6.5, '#7fb89e', 0, 5.6, 0, 1.03, hall); bx(10, 1.6, 4.4, '#bdb099', -2, 6.5, -.4, 1.03, hall);
+  const wing = bx(7, 4, 5, stone, 11.2, 2, -.4, 1.03, hall); const wf = new THREE.Mesh(new THREE.PlaneGeometry(6.6, 3.3), faceMat); wf.position.set(11.2, 2.2, 2.12); hall.add(wf);
+  bx(7.4, .35, 5.4, '#7fb89e', 11.2, 4.1, -.4, 1.03, hall);
+  // tårn
+  const tx = -5.2, tz = -.4; bx(2.8, 21, 2.8, '#c2b59d', tx, 10.5, tz, 1.03, hall);
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => bx(.22, 21, .22, '#ece5d4', tx + a * 1.65, 10.5, tz + b * 1.65, 0, hall));
+  [8, 13, 18, 21].forEach((y) => { bx(4, .28, 4, '#e9e2d1', tx, y, tz, 0, hall); [[0, 1.9, 4, .1], [0, -1.9, 4, .1], [1.9, 0, .1, 4], [-1.9, 0, .1, 4]].forEach(([a, b, w, d]) => bx(w, .7, d, '#d8d0bd', tx + a, y + .4, tz + b, 0, hall)); });
+  bx(3.4, .6, 3.4, '#7fb89e', tx, 21.5, tz, 1.03, hall); const spire = new THREE.Mesh(new THREE.ConeGeometry(.5, 2.2, 6), toon('#7fb89e')); spire.position.set(tx, 23, tz); hall.add(spire);
+  const clock = tex((x, w, h) => {
+    x.fillStyle = '#f7f3e8'; x.beginPath(); x.arc(128, 128, 120, 0, 6.283); x.fill(); x.lineWidth = 10; x.strokeStyle = '#4a5560'; x.stroke();
+    x.strokeStyle = '#2a2f36'; x.lineCap = 'round';
+    for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; x.lineWidth = i % 3 ? 4 : 9; x.beginPath(); x.moveTo(128 + Math.sin(a) * 96, 128 - Math.cos(a) * 96); x.lineTo(128 + Math.sin(a) * 112, 128 - Math.cos(a) * 112); x.stroke(); }
+    x.lineWidth = 10; x.beginPath(); x.moveTo(128, 128); x.lineTo(128 + Math.sin(-.9) * 62, 128 - Math.cos(-.9) * 62); x.stroke();
+    x.lineWidth = 6; x.beginPath(); x.moveTo(128, 128); x.lineTo(128 + Math.sin(.4) * 98, 128 - Math.cos(.4) * 98); x.stroke();
+  }, 256, 256);
+  [[0, 1.52, 0], [1.52, 0, Math.PI / 2]].forEach(([a, b, ry]) => { const cl = new THREE.Mesh(new THREE.CircleGeometry(1.2, 24), new THREE.MeshBasicMaterial({ map: clock })); cl.position.set(tx + a, 15.5, tz + b); cl.rotation.y = ry; hall.add(cl); });
+  // flagstang med Dannebrog
+  cyl(.07, .09, 8, '#d8d8d8', 12.5, 4, 3.5, 6, 0, hall);
+  const flag = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.5, 6, 1), new THREE.MeshBasicMaterial({ map: tex((x) => { x.fillStyle = '#c8102e'; x.fillRect(0, 0, 176, 120); x.fillStyle = '#fff'; x.fillRect(52, 0, 24, 120); x.fillRect(0, 48, 176, 24); }, 176, 120), side: THREE.DoubleSide }));
+  flag.position.set(13.6, 7.1, 3.5); hall.add(flag);
+  WORLD.anim.push((dt, t) => { flag.rotation.y = Math.sin(t * 2.2) * .25; });
+  hall.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  const hd = slot('town', 0, 19); hall.scale.setScalar(.82);
+  place(hall, hd, faceSpin(hd, c)); WORLD.blockers.push({ d: hd, r: .3 });
+  capMesh(hd, .3, .05, '#d8cfba'); capMesh(hd, .26, .06, '#e8e0cc');
+  // skilt
+  const sc2 = document.createElement('canvas'); sc2.width = 512; sc2.height = 128; const sx = sc2.getContext('2d');
+  sx.fillStyle = '#14181c'; sx.fillRect(0, 0, 512, 128); sx.strokeStyle = '#7fb89e'; sx.lineWidth = 6; sx.strokeRect(3, 3, 506, 122); sx.fillStyle = '#9fe0c4'; sx.font = 'bold 50px system-ui'; sx.textAlign = 'center'; sx.textBaseline = 'middle'; sx.fillText('Aarhus Rådhus', 256, 66);
+  const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(sc2), fog: false })); sign.scale.set(6, 1.5, 1); sign.position.y = 3.4;
+  const signG = new THREE.Group(); cyl(.08, .08, 2.4, '#3a3f47', 0, 1.2, 0, 6, 0, signG); signG.add(sign); put(c, 3.2, 0, signG, 0);
+  // busstoppested
+  const bs = new THREE.Group();
+  bx(3.4, .18, 1.5, '#2a6fb0', 0, 2.5, 0, 1.05, bs); bx(.12, 2.5, .12, '#3a3f47', -1.5, 1.25, -.55, 0, bs); bx(.12, 2.5, .12, '#3a3f47', 1.5, 1.25, -.55, 0, bs); bx(3.2, 1.6, .08, '#9fd0e8', 0, 1.5, -.7, 0, bs); bx(2.2, .15, .6, '#a77d52', 0, .6, -.3, 0, bs); bx(.12, 1.6, .12, '#3a3f47', 0, .8, .9, 0, bs); bx(.6, .6, .06, '#f2c81b', 0, 2.0, .92, 0, bs);
+  const bd = slot('town', 1, 11); place(bs, bd, faceSpin(bd, c) + Math.PI / 2);
+  // bænke og cykelstativ i parken
+  for (let i = 0; i < 4; i++) { const bn = new THREE.Group(); bx(1.8, .12, .55, '#a77d52', 0, .55, 0, 0, bn); bx(1.8, .5, .1, '#a77d52', 0, .9, -.25, 0, bn); bx(.1, .5, .5, '#3a3f47', -.8, .25, 0, 0, bn); bx(.1, .5, .5, '#3a3f47', .8, .25, 0, 0, bn); const a = i * 1.6 + .3, dd = slot('town', 2, 15); const [u, v] = basis(dd); const P = dd.clone().multiplyScalar(R).addScaledVector(u, Math.cos(a) * 3.2).addScaledVector(v, Math.sin(a) * 3.2).normalize(); place(bn, P, faceSpin(P, dd)); }
+  WORLD.blockers.push({ d: slot('town', 2, 15), r: .2 }, { d: bd, r: .08 });
+})();
+
+// ---- Bussen kører frem og tilbage på en vej ----
+(function bus() {
+  const g = new THREE.Group();
+  bx(1.7, 1.5, 4.4, '#f2c81b', 0, 1.1, 0, 1.05, g); bx(1.74, .55, 3.7, '#2d3a46', 0, 1.45, -.1, 0, g); bx(1.72, .12, 4.4, '#e0a900', 0, 1.9, 0, 0, g);
+  bx(1.2, .3, .05, '#2d3a46', 0, 1.5, 2.2, 0, g); bx(.5, .22, .06, '#fff8d0', -.55, .72, 2.22, 0, g); bx(.5, .22, .06, '#fff8d0', .55, .72, 2.22, 0, g);
+  [[-.9, -1.4], [.9, -1.4], [-.9, 1.4], [.9, 1.4]].forEach(([x, z]) => { const w = cyl(.38, .38, .3, '#1c1f24', x, .38, z, 10, 0, g); w.rotation.z = Math.PI / 2; });
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  scene.add(g);
+  const pts = roadList[1].pts; let pos = 8, vel = 9, dirn = 1;
+  const x0 = new THREE.Vector3(), z0 = new THREE.Vector3(), mt = new THREE.Matrix4();
+  WORLD.anim.push((dt) => {
+    pos += dirn * vel * dt; if (pos > pts.length - 9) { pos = pts.length - 9; dirn = -1; } if (pos < 8) { pos = 8; dirn = 1; }
+    const i = Math.floor(pos), f = pos - i, P = pts[i].clone().lerp(pts[Math.min(i + 1, pts.length - 1)], f).normalize();
+    const T = pts[Math.min(i + 2, pts.length - 1)].clone().sub(pts[Math.max(i - 1, 0)]).multiplyScalar(dirn).normalize(), S = P.clone().cross(T).normalize();
+    const lane = P.clone().multiplyScalar(R).addScaledVector(S, .55 * dirn).setLength(R + .08);
+    z0.copy(T).sub(P.clone().multiplyScalar(T.dot(P))).normalize(); x0.copy(P).cross(z0);
+    mt.makeBasis(x0, P, z0); g.quaternion.setFromRotationMatrix(mt); g.position.copy(lane);
+  });
+})();
+
+// ---- Luftballon der sejler rundt om kloden ----
+(function balloon() {
+  const pivot = new THREE.Group(), g = new THREE.Group(), cols = ['#e4574b', '#f6dd7a', '#82b4d4', '#f2a7b5', '#9fe0c4', '#c9b5ee'];
+  for (let i = 0; i < 6; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(2.2, 10, 10, i * Math.PI / 3, Math.PI / 3), new THREE.MeshToonMaterial({ color: cols[i], gradientMap: gradient, side: THREE.DoubleSide })); m.position.y = 3.3; g.add(m); }
+  const basket = bx(1.1, .8, 1.1, '#a77d52', 0, .1, 0, 1.05, g);
+  [[-.4, -.4], [.4, -.4], [-.4, .4], [.4, .4]].forEach(([x, z]) => { const r = cyl(.02, .02, 2.2, '#3a3f47', x, 1.2, z, 4, 0, g); });
+  g.position.set(0, R + 24, 0); pivot.add(g); pivot.rotation.set(.4, 0, .3); scene.add(pivot);
+  const axis = new THREE.Vector3(.3, 0, 1).normalize();
+  WORLD.anim.push((dt, t) => { pivot.rotateOnWorldAxis(axis, dt * .035); g.position.y = R + 24 + Math.sin(t * .7) * .8; g.rotation.y += dt * .08; });
+})();
+
+function tickWorld(dt, t) { for (let i = 0; i < WORLD.anim.length; i++) WORLD.anim[i](dt, t); }
+// spredte træer
+for (let i = 0, tries = 0; i < 70 && tries < 3000; tries++) {
+  const d = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).normalize();
+  if (houseDirs.some((h) => h.angleTo(d) < .3) || blockedAt(d, .05)) continue;
+  addTree(d, .8 + Math.random() * .7, Math.random() < .45 ? 0 : 1); i++;
+}
+// allé langs to veje
+[0, 4].forEach((ri) => {
+  const r = roadList[ri].pts;
+  for (let i = 10, side = 1; i < r.length - 10; i += 9, side = -side) {
+    const P = r[i], T = r[i + 1].clone().sub(r[i - 1]).normalize(), S = P.clone().cross(T).normalize();
+    addTree(P.clone().multiplyScalar(R).addScaledVector(S, side * 3.1).normalize(), .85 + Math.random() * .2, 0);
+  }
+});
+// skov
+for (let i = 0, tries = 0; i < 95 && tries < 4000; tries++) {
+  const a = Math.random() * 6.28, r = 5.5 + Math.sqrt(Math.random()) * 18;
+  const d = offDir(ZONES.forest, Math.cos(a) * r, Math.sin(a) * r);
+  if (blockedAt(d, .035)) continue;
+  addTree(d, .85 + Math.random() * .55, Math.random() < .68 ? 1 : 0); i++;
+}
+// park ved rådhuset
+for (let i = 0; i < 12; i++) { const a = i / 12 * 6.28 + .2, d = slot('town', 2, 15 + Math.cos(a * 3) * 1.5); const [u, v] = basis(d); addTree(d.clone().multiplyScalar(R).addScaledVector(u, Math.cos(a) * 6).addScaledVector(v, Math.sin(a) * 6).normalize(), .9 + Math.random() * .3, 0); }
+
+buildTrees(treeList);
 
 // Træer, ikke for tæt på husene
 function makeTree() {
@@ -296,11 +732,6 @@ function makeTree() {
   g.scale.setScalar(.8 + Math.random() * .7);
   return g;
 }
-for (let i = 0, tries = 0; i < CONFIG.treeCount && tries < 2000; tries++) {
-  const d = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).normalize();
-  if (houseDirs.some((h) => h.angleTo(d) < 0.3)) continue;
-  place(makeTree(), d, Math.random() * 6.28); i++;
-}
 
 // Små detaljer: græstotter, blomster, sten og buske (mange kopier af samme form)
 function scatter(n, geo, mat, o = {}) {
@@ -311,7 +742,7 @@ function scatter(n, geo, mat, o = {}) {
   while (i < n && tries < n * 30) {
     tries++;
     const d = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).normalize();
-    if (houseDirs.some((hd) => hd.angleTo(d) < (o.clear || .25))) continue;
+    if (houseDirs.some((hd) => hd.angleTo(d) < (o.clear || .25)) || blockedAt(d, .012)) continue;
     q.setFromUnitVectors(Y, d); qs.setFromAxisAngle(Y, Math.random() * 6.28); q.multiply(qs);
     const sz = lo + Math.random() * (hi - lo);
     sc.set(sz, sz * (o.tall || 1) * (.8 + Math.random() * .5), sz);
@@ -443,6 +874,7 @@ function updateRider() {
     _el.copy(_sh).add(_gr).multiplyScalar(.5).add(new THREE.Vector3(sg * .2, -.22, -.05));
     setDyn(arms[k].up, _sh, _el); setDyn(arms[k].lo, _el, _gr); arms[k].hand.position.copy(_gr);
   });
+  if (typeof updateSeb === 'function') updateSeb();
 }
 updateRider();scene.add(bike);
 
@@ -472,6 +904,112 @@ function syncModel() {
   model.fork.rotation.y = frontPivot.rotation.y; model.bars.rotation.y = bars.rotation.y; model.crank.rotation.x = crank.rotation.x;
 }
 loadBikeModel();
+
+// ===================== Sebastian: rytter med skelet (models/sebastian/sebastian.glb) =====================
+// Knoglerne rettes ind efter punkter hver frame (to-leds IK), på samme måde som den simple rytter.
+const SB = ['hips', 'spine', 'head', 'upperarm.L', 'forearm.L', 'hand.L', 'upperarm.R', 'forearm.R', 'hand.R', 'thigh.L', 'shin.L', 'foot.L', 'thigh.R', 'shin.R', 'foot.R'];
+const SB_PARENT = { spine: 'hips', head: 'spine', thigh: 'hips', upperarm: 'spine' };
+const SB_CHILD = { hips: 'spine', spine: 'head', upperarm: 'forearm', forearm: 'hand', thigh: 'shin', shin: 'foot' };
+const sbKey = (n) => n.replace('.', '');
+function sbParent(n) { const [b, s] = n.split('.'); if (SB_PARENT[b]) return SB_PARENT[b] + (['hips', 'spine'].includes(SB_PARENT[b]) ? '' : '.' + s); return { forearm: 'upperarm.' + s, hand: 'forearm.' + s, shin: 'thigh.' + s, foot: 'shin.' + s }[b] || null; }
+function sbChild(n) { const [b, s] = n.split('.'); const c = SB_CHILD[b]; return c ? (['spine', 'head'].includes(c) ? c : c + '.' + s) : null; }
+const _iq = new THREE.Quaternion();
+function makeSeb(scale, onReady) {
+  new THREE.GLTFLoader().load('models/sebastian/sebastian.glb', (gltf) => {
+    const g = gltf.scene, B = {}, rp = {}, rq = {}, rd = {}, cur = {};
+    g.traverse((o) => {
+      if (!o.isMesh) return;
+      const map = o.material.map; if (map) { map.encoding = THREE.LinearEncoding; map.needsUpdate = true; }
+      o.material = new THREE.MeshToonMaterial({ map, gradientMap: gradient, skinning: true });
+      o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false;
+    });
+    g.updateMatrixWorld(true);
+    SB.forEach((n) => { B[n] = g.getObjectByName(n) || g.getObjectByName(sbKey(n)); rp[n] = B[n].getWorldPosition(new THREE.Vector3()); rq[n] = B[n].getWorldQuaternion(new THREE.Quaternion()); });
+    SB.forEach((n) => {
+      const c = sbChild(n);
+      rd[n] = c ? rp[c].clone().sub(rp[n]).normalize() : new THREE.Vector3(0, 1, 0).applyQuaternion(rq[n]);
+    });
+    rd.hand_L_fix = null; rd['hand.L'] = rd['forearm.L'].clone(); rd['hand.R'] = rd['forearm.R'].clone(); rd.head = new THREE.Vector3(0, 1, 0);
+    // fod: pegepind frem (+z) og lidt nedad
+    rd['foot.L'] = new THREE.Vector3(0, -.3, 1).normalize(); rd['foot.R'] = rd['foot.L'];
+    g.scale.setScalar(scale);
+    const S = { g, B, rp, rq, rd, cur, sc: scale, on: false };
+    const posOf = (n) => { const par = sbParent(n); if (!par) return rp[n].clone(); return posOf(par).add(rp[n].clone().sub(rp[par]).applyQuaternion(cur[par])); };
+    const setW = (n, w) => { cur[n] = w; const par = sbParent(n); B[n].quaternion.copy((par ? _iq.copy(cur[par]) : _iq.identity()).invert().multiply(w)); };
+    const aim = (n, dir) => setW(n, new THREE.Quaternion().setFromUnitVectors(rd[n], dir.clone().normalize()).multiply(rq[n]));
+    const rotX = (a) => new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), a);
+    const reset = () => { SB.forEach((n) => { cur[n] = rq[n].clone(); }); };
+    function ik2(root, target, L1, L2, pole) {
+      const d0 = target.clone().sub(root), u = d0.clone().normalize();
+      const d = THREE.MathUtils.clamp(d0.length(), Math.abs(L1 - L2) + .01, (L1 + L2) * .999);
+      const a = Math.acos(THREE.MathUtils.clamp((L1 * L1 + d * d - L2 * L2) / (2 * L1 * d), -1, 1));
+      const w = pole.clone().addScaledVector(u, -pole.dot(u)).normalize();
+      return [root.clone().addScaledVector(u, Math.cos(a) * L1).addScaledVector(w, Math.sin(a) * L1), root.clone().addScaledVector(u, d)];
+    }
+    const len = (a, b) => rp[a].distanceTo(rp[b]);
+    S.pose = (opt) => {   // opt: lean, head, ankles {L,R}, wrists {L,R}, hands {L,R} (retning), footDir, hipsOff
+      reset();
+      setW('hips', rq.hips.clone()); setW('spine', rotX(opt.lean).multiply(rq.spine)); setW('head', rotX(opt.lean * (opt.head ?? .2)).multiply(rq.head));
+      ['L', 'R'].forEach((s) => {
+        const sg = s === 'L' ? 1 : -1;
+        if (opt.ankles) {
+          const hip = posOf('thigh.' + s), [kn, an] = ik2(hip, opt.ankles[s], len('thigh.' + s, 'shin.' + s), len('shin.' + s, 'foot.' + s), new THREE.Vector3(sg * .12, .35, 1));
+          aim('thigh.' + s, kn.clone().sub(hip)); aim('shin.' + s, an.clone().sub(kn)); aim('foot.' + s, opt.footDir || new THREE.Vector3(0, -.12, 1));
+        } else {
+          aim('thigh.' + s, opt.thigh[s]); aim('shin.' + s, opt.shin[s]); aim('foot.' + s, new THREE.Vector3(0, -.1, 1));
+        }
+        if (opt.wrists) {
+          const sh = posOf('upperarm.' + s), [el, wr] = ik2(sh, opt.wrists[s], len('upperarm.' + s, 'forearm.' + s), len('forearm.' + s, 'hand.' + s), new THREE.Vector3(sg * .7, -.7, -.35));
+          aim('upperarm.' + s, el.clone().sub(sh)); aim('forearm.' + s, wr.clone().sub(el)); aim('hand.' + s, opt.hands[s]);
+        } else {
+          aim('upperarm.' + s, opt.up[s]); aim('forearm.' + s, opt.lo[s]); aim('hand.' + s, opt.lo[s]);
+        }
+      });
+    };
+    S.shoulder = (s, lean) => rp.spine.clone().add(rp['upperarm.' + s].clone().sub(rp.spine).applyQuaternion(rotX(lean).multiply(rq.spine).multiply(rq.spine.clone().invert())));
+    S.arm = [len('upperarm.L', 'forearm.L'), len('forearm.L', 'hand.L')];
+    onReady(S);
+  }, undefined, () => { /* ingen model: den simple rytter bruges */ });
+}
+var sebRide = null, sebWalk = null, sebLean = .6;
+const sebHandDir = (sg) => new THREE.Vector3(-sg * .3, -.6, .5).normalize();
+function updateSeb() {
+  if (!sebRide || !sebRide.on) return;
+  const S = sebRide, off = S.g.position, sc = S.sc, to = (v) => v.clone().sub(off).divideScalar(sc);
+  const a = crank.rotation.x, t = bars.rotation.y, c = Math.cos(t), sn = Math.sin(t);
+  const ankles = {}, wrists = {}, hands = {};
+  [['L', 1], ['R', -1]].forEach(([s, sg]) => {
+    const py = BB[1] + sg * .25 * Math.cos(a), pz = BB[0] + sg * .25 * Math.sin(a);
+    ankles[s] = to(new THREE.Vector3(sg * .22, py + .25, pz - .08));
+    const grip = new THREE.Vector3(sg * .5 * c, 1.86, -.15 - sg * .5 * sn), h = sebHandDir(sg);
+    hands[s] = h; wrists[s] = to(grip.clone().addScaledVector(h, -.3 * sc));
+  });
+  S.pose({ lean: sebLean, ankles, wrists, hands, footDir: new THREE.Vector3(0, -.15, 1) });
+}
+function sebWalkPose(phase, amt) {
+  const S = sebWalk; if (!S || !S.g.visible) return;
+  const sw = Math.sin(phase) * amt, up = {}, lo = {}, th = {}, sh = {};
+  [['L', 1], ['R', -1]].forEach(([s, sg]) => {
+    const a = sw * sg * .7, flex = Math.max(0, -Math.cos(phase) * sg) * .7 * amt;
+    th[s] = new THREE.Vector3(0, -Math.cos(a), Math.sin(a));
+    sh[s] = new THREE.Vector3(0, -Math.cos(a - flex), Math.sin(a - flex));
+    const ar = -sw * sg * .6;
+    up[s] = new THREE.Vector3(sg * .12, -Math.cos(ar), Math.sin(ar)); lo[s] = new THREE.Vector3(sg * .1, -Math.cos(ar * 1.2 + .25), Math.sin(ar * 1.2 + .25));
+  });
+  S.pose({ lean: .04 * amt, head: 0, thigh: th, shin: sh, up, lo });
+  S.g.position.y = Math.abs(Math.cos(phase)) * .05 * amt;
+}
+makeSeb(1, (S) => {
+  S.g.position.set(0, 2.02 - S.rp.hips.y, -1.12); const dropG = new THREE.Group(); dropG.add(S.g); rider.add(dropG); S.drop = dropG; sebRide = S;
+  // find et fremadbøjningsvinkel hvor armene når styret
+  const h = sebHandDir(1), grip = new THREE.Vector3(.5, 1.86, -.15).sub(S.g.position).addScaledVector(h, -.3), reach = (S.arm[0] + S.arm[1]) * .93;
+  let best = .6, bd = 1e9;
+  for (let l = .1; l < 1.3; l += .02) { const d = Math.abs(S.shoulder('L', l).distanceTo(grip) - reach); if (d < bd) { bd = d; best = l; } }
+  sebLean = best; S.on = look.rider === 'sebastian'; S.g.visible = S.on; applyRider(); updateSeb();
+});
+makeSeb(.64, (S) => {
+  wBody.add(S.g); sebWalk = S; S.g.position.set(0, 0, 0); S.g.visible = look.rider === 'sebastian'; applyRider();
+});
 
 // Tilstand: p er position på kloden (enhedsvektor), h er kørselsretning (vandret ved p)
 const p = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(1, 0, 0), -0.4).normalize();
@@ -547,11 +1085,32 @@ function camTarget(pu, fw, back, upd, side) {
   _side.copy(pu).cross(fw);
   return _cp.copy(pu).multiplyScalar(R + upd).addScaledVector(fw, -back).addScaledVector(_side, side);
 }
+// Fri kamera: træk med musen for at kigge rundt; når man cykler glider kameraet tilbage
+const orbit = { yaw: 0, pitch: 0, zoom: 1, drag: false, moved: 0 };
+const _off = new THREE.Vector3(), _ax = new THREE.Vector3();
+(function () {
+  const cv = renderer.domElement; let lx = 0, ly = 0;
+  cv.addEventListener('pointerdown', (e) => { if (mode === 'inside' || (EMBED && (e.pointerType !== 'mouse' || !emb.play))) return; orbit.drag = true; orbit.moved = 0; lx = e.clientX; ly = e.clientY; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => {
+    if (!orbit.drag) return;
+    const dx = e.clientX - lx, dy = e.clientY - ly; lx = e.clientX; ly = e.clientY; orbit.moved += Math.abs(dx) + Math.abs(dy);
+    orbit.yaw -= dx * 0.006; orbit.pitch = THREE.MathUtils.clamp(orbit.pitch + dy * 0.005, -0.5, 1.1);
+  });
+  const end = () => { orbit.drag = false; };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  cv.addEventListener('wheel', (e) => { if (EMBED && !emb.play) return; e.preventDefault(); orbit.zoom = THREE.MathUtils.clamp(orbit.zoom * Math.exp(e.deltaY * 0.001), 0.5, 2.2); }, { passive: false });
+})();
 function followCam(pu, fw, dt, back, upd, side, lookUp, lookFwd) {
-  camPos.lerp(camTarget(pu, fw, back, upd, side), 1 - Math.exp(-dt * 4));
+  const driving = mode === 'busy' || (mode === 'ride' && (keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight));
+  if (driving && !orbit.drag) { const k = Math.exp(-dt * 2.5); orbit.yaw *= k; orbit.pitch *= k; orbit.zoom = 1 + (orbit.zoom - 1) * k; }
+  _look.copy(pu).multiplyScalar(R + lookUp).addScaledVector(fw, lookFwd);
+  _off.copy(camTarget(pu, fw, back, upd, side)).sub(_look);
+  _off.applyAxisAngle(pu, orbit.yaw);
+  _ax.copy(pu).cross(_off).normalize(); _off.applyAxisAngle(_ax, -orbit.pitch).multiplyScalar(orbit.zoom);
+  camPos.lerp(_off.add(_look), 1 - Math.exp(-dt * 4));
   camera.position.copy(camPos);
   camera.up.copy(pu);
-  camera.lookAt(_look.copy(pu).multiplyScalar(R + lookUp).addScaledVector(fw, lookFwd));
+  camera.lookAt(_look);
   sun.target.position.copy(pu).multiplyScalar(R);
   sun.position.copy(pu).multiplyScalar(R + 55).addScaledVector(_side, 22).addScaledVector(fw, -12);
   skyUni.upDir.value.copy(pu);
@@ -605,6 +1164,7 @@ function swing(phase, amt) {
   const s = Math.sin(phase) * amt;
   legL.rotation.x = s * .7; legR.rotation.x = -s * .7; armL.rotation.x = -s * .6; armR.rotation.x = s * .6;
   wBody.position.y = Math.abs(Math.cos(phase)) * .08 * amt;
+  if (typeof sebWalkPose === 'function') sebWalkPose(phase, amt);
 }
 const _wm = new THREE.Matrix4(), _wx = new V3();
 function setWalker(pos, up, fwd) {
@@ -617,7 +1177,7 @@ function tangentTo(A, B) { return B.clone().sub(A.clone().multiplyScalar(A.dot(B
 // Rummet indeni (ligger langt væk over kloden)
 const IN = new V3(0, 400, 0);
 const room = new THREE.Group(); room.position.copy(IN); scene.add(room);
-const lamp = new THREE.PointLight(0xfff0d0, 1.15, 50); lamp.position.set(0, 6, 1); room.add(lamp);
+const lamp = new THREE.PointLight(0xfff0d0, .62, 60); lamp.position.set(0, 6, 1); room.add(lamp);
 const icam = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 200);
 function rbox(w, hh, d, x, y, z, color, ink = 1.04) {
   const m = mesh(new THREE.BoxGeometry(w, hh, d), color, ink); m.position.set(x, y, z); room.add(m); return m;
@@ -860,7 +1420,7 @@ HOUSES.forEach((hs, i) => {
 // klik på selve kloden: hus eller markør
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 renderer.domElement.addEventListener('click', (e) => {
-  if (mode !== 'ride') return;
+  if (mode !== 'ride' || orbit.moved > 6) return;
   ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(ndc, camera);
   const hit = ray.intersectObjects(houseGroups, true)[0]; if (!hit) return;
@@ -868,10 +1428,24 @@ renderer.domElement.addEventListener('click', (e) => {
   if (o) goTo(houseGroups.indexOf(o));
 });
 
-let camK = 1;
+let camK = 1, introK = 3.2, introGo = false;
+const EMBED = new URLSearchParams(location.search).has('embed');
+const emb = { sky: 0, f: 0, a: 0, vis: 0, ang: 0, angSign: 1, play: false, mix: 0, active: false, rig: null, lite: false };
+if (EMBED) {
+  document.body.classList.add('embed'); introGo = true; introK = 1;
+  addEventListener('message', (e) => {
+    if (e.origin === location.origin && e.data && e.data.type === 'key') { if (e.data.k === 'Escape' && e.data.down) { try { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); } catch (err) { /* ok */ } } else if (e.data.k === ' ' && e.data.down) { try { window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space' })); } catch (err) { /* ok */ } } else keys[e.data.k] = !!e.data.down; return; }
+    if (e.origin !== location.origin || !e.data || e.data.type !== 'portfolio') return;
+    const st = e.data.state || {}; if (st.lite && !emb.lite) { emb.lite = true; renderer.setPixelRatio(1); look.fx = 'fra'; sun.castShadow = false; }
+    Object.assign(emb, st);
+  });
+  const ping = () => { try { parent.postMessage({ type: 'game-ready' }, location.origin); } catch (err) { /* ingen forælder */ } };
+  addEventListener('load', ping); setTimeout(ping, 1500); setTimeout(ping, 4000);
+}
+
 // ===================== Udtryk: stil, efterbehandling, detaljegrader =====================
-const LOOK_KEY = 'spil-udtryk-v1';
-const look = { style: 'pastel', rider: 'afrundet', bike: 'blender', cam: 'normal', fx: 'til' };
+const LOOK_KEY = 'spil-udtryk-v2';
+const look = { style: 'pastel', rider: 'sebastian', bike: 'blender', cam: 'normal', fx: 'til' };
 try { Object.assign(look, JSON.parse(localStorage.getItem(LOOK_KEY) || '{}')); } catch (e) { /* ingen lagring */ }
 const saveLook = () => { try { localStorage.setItem(LOOK_KEY, JSON.stringify(look)); } catch (e) { /* ok */ } };
 
@@ -922,6 +1496,8 @@ const STYLES = {
   tegneserie: { navn: 'Tegneserie', steps: [110, 190, 255],     outline: true,  sky: '#9fd9ff', ground: '#6fbf5a', sun: .8,  hemi: .45, sunCol: 0xffffff, bloom: 0,   tilt: 0,   sat: 1.25, con: 1.15, tint: [1, 1, 1],        vig: .12, grain: 0,    fog: [70, 170] },
   droemmende: { navn: 'Drømmende',  steps: SMOOTH,               outline: false, sky: '#a3d9d1', ground: '#889d58', sun: .75, hemi: .55, sunCol: 0xffe3b8, bloom: .6,  tilt: .7,  sat: 1.1,  con: 1.0,  tint: [1.05, 1, .94],   vig: .45, grain: .05,  fog: [22, 95] },
 };
+const baseFog = [40, 125];
+const baseLight = { hemi: .5, sun: .7, bloom: .18 };
 function applyStyle() {
   const st = STYLES[look.style] || STYLES.pastel;
   const n = st.steps.length, data = new Uint8Array(n * 3);
@@ -931,9 +1507,11 @@ function applyStyle() {
   gradient.dispose(); gradient.needsUpdate = true;
   inkMat.visible = st.outline;
   skyPick.value = st.sky; groundPick.value = st.ground; applySky(st.sky); planetMat.color.set(st.ground);
-  hemi.intensity = st.hemi; sun.intensity = st.sun; sun.color.setHex(st.sunCol);
-  scene.fog.near = st.fog[0]; scene.fog.far = st.fog[1];
-  if (bloomPass) { bloomPass.strength = st.bloom; bloomPass.enabled = st.bloom > 0; }
+  baseLight.hemi = st.hemi; baseLight.sun = st.sun; baseLight.bloom = st.bloom;
+  if (EMBED) { baseLight.sun *= .72; baseLight.hemi *= .82; baseLight.bloom = Math.min(baseLight.bloom * .45, .26); } sun.color.setHex(st.sunCol);
+  scene.fog.near = st.fog[0]; scene.fog.far = st.fog[1]; baseFog[0] = st.fog[0]; baseFog[1] = st.fog[1];
+  if (bloomPass) { bloomPass.strength = baseLight.bloom; bloomPass.enabled = baseLight.bloom > 0; if (EMBED) bloomPass.threshold = .96; }
+  hemi.intensity = baseLight.hemi; sun.intensity = baseLight.sun;
   if (gradePass) {
     const u = gradePass.uniforms; u.tilt.value = st.tilt; u.sat.value = st.sat; u.con.value = st.con; u.tint.value.setRGB(...st.tint); u.vig.value = st.vig; u.grain.value = st.grain;
   }
@@ -977,7 +1555,16 @@ function buildRound() {
   R2.hands = arms.map((a) => a.hand);
 }
 function applyRider() {
-  const lv = { enkel: 0, afrundet: 1, detaljeret: 2 }[look.rider] || 0;
+  rider.children.forEach((c) => { if (c.userData._v !== undefined) { c.visible = c.userData._v; delete c.userData._v; } });
+  wBody.children.forEach((c) => { if (c.userData._v !== undefined) { c.visible = c.userData._v; delete c.userData._v; } });
+  const sebOn = look.rider === 'sebastian';
+  const lv = { enkel: 0, afrundet: 1, detaljeret: 2, sebastian: 1 }[look.rider] || 0;
+  applyRiderBase(lv);
+  const hide = (grp, keep) => grp.children.forEach((c) => { if (c !== keep) { c.userData._v = c.visible; c.visible = false; } });
+  if (sebRide) { sebRide.on = sebOn; sebRide.g.visible = sebOn; if (sebOn) { hide(rider, sebRide.drop || sebRide.g); updateSeb(); } }
+  if (sebWalk) { sebWalk.g.visible = sebOn; if (sebOn) hide(wBody, sebWalk.g); }
+}
+function applyRiderBase(lv) {
   if (lv > 0) buildRound();
   torsoBox.visible = lv === 0;
   legs.forEach((l) => { l.foot.visible = lv === 0; });
@@ -999,7 +1586,7 @@ function applyAll() { applyStyle(); applyRider(); applyBike(); applyCam(); }
 // --- Menu ---
 const LOOK_GROUPS = [
   { id: 'style', label: 'Stil', opts: [['pastel', 'Pastel'], ['legetoej', 'Legetøj'], ['tegneserie', 'Tegneserie'], ['droemmende', 'Drømmende']] },
-  { id: 'rider', label: 'Rytter', opts: [['enkel', 'Enkel'], ['afrundet', 'Afrundet'], ['detaljeret', 'Detaljeret']] },
+  { id: 'rider', label: 'Rytter', opts: [['enkel', 'Enkel'], ['afrundet', 'Afrundet'], ['detaljeret', 'Detaljeret'], ['sebastian', 'Sebastian']] },
   { id: 'bike', label: 'Cykel', opts: [['enkel', 'Enkel'], ['blender', 'Blender']] },
   { id: 'cam', label: 'Kamera', opts: [['normal', 'Normal'], ['taet', 'Tæt']] },
   { id: 'fx', label: 'Effekter', opts: [['til', 'Til'], ['fra', 'Fra']] },
@@ -1021,27 +1608,152 @@ refreshChips(); applyAll();
 
 
 function frame(dt) {
-  runTweens(dt); clouds.rotation.y += dt * .012;
-  if (mode === 'ride') { step(dt); followCam(p, h, dt, 9.5 * camK, 5.2 * camK, 3.2 * camK, 1.3, 1.5); updateCard(); }
-  else if (mode === 'busy') followCam(follow.p, follow.h, dt, 5.5 * camK, 3.0 * camK, 1.8 * camK, 1.3, 1.5);
+  const inRoom = mode === 'inside';
+  sun.intensity = inRoom ? 0 : baseLight.sun; hemi.intensity = inRoom ? .5 : baseLight.hemi; lamp.intensity = inRoom ? .62 : 0;
+  if (bloomPass) bloomPass.strength = inRoom ? Math.min(.06, baseLight.bloom) : baseLight.bloom;
+  runTweens(dt); tickWorld(dt, performance.now() * .001); if (introGo) introK += (1 - introK) * Math.min(1, dt * 1.1); clouds.rotation.y += dt * .012;
+  if (mode === 'ride') { if (EMBED) embedRide(dt); else { step(dt); followCam(p, h, dt, 9.5 * camK * introK, 5.2 * camK * introK, 3.2 * camK * introK, 1.3, 1.5); updateCard(); } }
+  else if (mode === 'busy') followCam(follow.p, follow.h, dt, 5.5 * camK * introK, 3.0 * camK * introK, 1.8 * camK * introK, 1.3, 1.5);
   const tt = performance.now();
   beacons.forEach((b, k) => { b.position.y = b.userData.base + Math.sin(tt * .003 + k * 1.7) * .35; b.rotation.y += dt * 1.2; });
   radarBox.style.opacity = mode === 'ride' ? 1 : 0; radarBox.style.pointerEvents = mode === 'ride' ? 'auto' : 'none';
   if (mode === 'ride') drawRadar(tt);
-  drawScene(mode === 'inside' ? icam : camera, dt);
+  if (!(EMBED && !emb.active)) drawScene(mode === 'inside' ? icam : camera, dt);
 }
 
 scene.traverse((o) => {
-  if (o.isMesh && o !== planetMesh && o.parent !== skyGroup && !o.material.isMeshBasicMaterial && !o.material.isShaderMaterial && o.material !== inkMat && !o.isInstancedMesh) { o.castShadow = true; o.receiveShadow = true; }
+  if (o.isMesh && o !== planetMesh && o.parent !== skyGroup && !o.material.isMeshBasicMaterial && !o.material.isShaderMaterial && o.material !== inkMat && !o.isInstancedMesh) { o.castShadow = !o.userData.flat; o.receiveShadow = true; }
 });
 planetMesh.receiveShadow = true;
 clouds.traverse((o) => { o.castShadow = false; o.receiveShadow = false; });
+
+// ===================== Indlejret tilstand (siden sender scroll-positionen) =====================
+// Bruges som lag bag portefølje-siden: ?embed=1. Kameraet flyver ind, cyklen samles, og til sidst kan man køre selv.
+function embedPoseInto(outPos, outQuat) {
+  const rig = emb.rig || { l: 0, t: 0, w: innerWidth * .92, h: innerWidth * .5 }, W = innerWidth, H = innerHeight;
+  const up = p.clone(), fwd = h.clone(), left = p.clone().cross(h).normalize();
+  const P0 = p.clone().multiplyScalar(R);
+  const BL = 4.5, ppu = rig.w * (1917 / 1980) / BL, FOV = 30;
+  const D = H / (2 * ppu * Math.tan(FOV * Math.PI / 360));
+  const yGround = rig.t + (1467 - 440) / 1130 * rig.h;                   // hjulenes bund i pixels
+  const lift = 1.15 * (() => { const u = THREE.MathUtils.clamp((emb.a - .55) / .4, 0, 1); return u * u * (3 - 2 * u); })();
+  const yt = (yGround - H / 2) / ppu + lift, zc = -.03;
+  const T1 = P0.clone().addScaledVector(up, yt).addScaledVector(fwd, zc);
+  const az = (emb.ang || 0) * Math.PI / 180 * emb.angSign;
+  const side = left.clone().negate().multiplyScalar(D).applyAxisAngle(up, az);
+  const C1 = T1.clone().add(side);
+  const f = THREE.MathUtils.clamp(emb.f, 0, 1), e = f * f * (3 - 2 * f);
+  const alt = 2.6 + (210 - 2.6) * Math.pow(1 - e, 2.2);
+  const Cf = P0.clone().addScaledVector(up, alt).addScaledVector(side, Math.pow(e, 1.6)).addScaledVector(fwd, -(1 - e) * 18);
+  const Tf = P0.clone().lerp(T1, e);
+  const upv = fwd.clone().lerp(up, Math.min(1, e * 1.3)).normalize();
+  const cam = new THREE.PerspectiveCamera(); cam.up.copy(upv); cam.position.copy(Cf); cam.lookAt(Tf);
+  const sk = THREE.MathUtils.clamp(emb.sky || 0, 0, 1);
+  if (sk > 0) { Cf.addScaledVector(side, .45 * sk).addScaledVector(up, D * .06 * sk); Tf.addScaledVector(up, D * .5 * sk); }
+  cam.position.copy(Cf); cam.lookAt(Tf);
+  outPos.copy(Cf); outQuat.copy(cam.quaternion);
+  scene.fog.near = baseFog[0] + (1 - e) * 500; scene.fog.far = baseFog[1] + (1 - e) * 900;
+  return 55 + (FOV - 55) * (1 - Math.pow(1 - e, 2)) + 12 * sk;
+}
+const _ep = new THREE.Vector3(), _eq = new THREE.Quaternion(), _eq2 = new THREE.Quaternion();
+function bikeMaterials() {
+  const n = (modelRoot ? 1 : 0) + (sebRide ? 2 : 0);
+  if (emb._matN !== n) { emb._matN = n; const set = new Set(); bike.traverse((o) => { if (o.isMesh && o.material && o.material !== inkMat) { (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => set.add(m)); } }); emb._mats = [...set]; }
+  return emb._mats;
+}
+const asm = { parts: null };
+const ASM_GROUPS = [  // sidenøgle, noder i modellen, forsinkelse (0..1) i samlingen
+  ['rearw', ['rear_wheel', 'kassette'], 0], ['drive', ['crank', 'kaede_bund', 'kaede_top'], .03], ['down', ['hovedbjaelke', 'hovedbjaelke2'], .06],
+  ['rtri', ['bagskaerm', 'saedestag', 'kaedestag'], .09], ['seattube', ['saederoer'], .12], ['top', ['toppen'], .15], ['head', ['Cylinder', 'Cylinder.001'], .18],
+  ['wheel', ['front_wheel'], .22], ['fork', ['gaffel', 'gaffel_side', 'styrehoved'], .26], ['bars', ['handlebar'], .29], ['lamp', ['lygte', 'lygte_glas'], .31],
+  ['stem', ['styroer'], .34], ['plat', ['platform'], .38], ['panel', ['plade'], .42], ['rack', ['baerer', 'baglygte'], .46],
+  ['seat', ['sadel', 'saedepind'], .5], ['batt', ['batteri', 'batteri_pol'], .54],
+];
+function assemblyParts() {
+  if (asm.parts || !modelRoot) return asm.parts;
+  modelRoot.updateMatrixWorld(true);
+  const list = [], box = new THREE.Box3(), c = new THREE.Vector3();
+  const mkPivot = (key, names, dly, book) => {
+    const nodes = names.map((n) => modelRoot.getObjectByName(n)).filter(Boolean); if (!nodes.length) return;
+    box.makeEmpty(); nodes.forEach((o) => box.expandByObject(o)); box.getCenter(c); modelRoot.worldToLocal(c);
+    const pv = new THREE.Group(); pv.position.copy(c); modelRoot.add(pv); pv.updateMatrixWorld(true);
+    nodes.forEach((o) => pv.attach(o));
+    list.push({ key, pv, base: c.clone(), dly, book, dir: (key.length % 2) ? 1 : -1 });
+  };
+  ASM_GROUPS.forEach(([key, names, dly]) => mkPivot(key, names, dly, false));
+  [['bog0', .6], ['bog1', .66], ['bog2', .72]].forEach(([n, d]) => mkPivot(n, [n], d, true));
+  asm.parts = list; return list;
+}
+const REL = 1980 / 1917 * 4.5;   // 1 rig-bredde i modelenheder
+const ROT_SIGN = 1;
+function applyAssembly() {
+  const list = assemblyParts(); if (!list) return;
+  const a = emb.play ? 1 : emb.a, P = emb.p || 0, vis = emb.play ? 1 : THREE.MathUtils.clamp(emb.vis, 0, 1);
+  const gl = emb.play ? 0 : Math.sin(Math.PI * vis);
+  list.forEach((q, i) => {
+    const e0 = THREE.MathUtils.clamp((a - q.dly * .5) / .5, 0, 1), e = e0 * e0 * (3 - 2 * e0), k = 1 - e;
+    if (q.book) {
+      q.pv.visible = a > q.dly * .5;
+      q.pv.position.set(q.base.x, q.base.y + (4.5 + i * .1) * k, q.base.z + (.4 - i * .3) * k); q.pv.rotation.set(k * 3, k * 2, 0);
+      q.pv.scale.setScalar(1 + .1 * gl); return;
+    }
+    const pr = emb.parts && emb.parts[q.key];
+    if (pr) {
+      q.pv.position.set(q.base.x, q.base.y - pr[1] * REL * k, q.base.z + pr[0] * REL * k);
+      const tw = Math.max(0, P - .585) * 16 * q.dir;   // ekstra tumling i 3D efter forvandlingen
+      q.pv.rotation.set(ROT_SIGN * (pr[2] || 0) * Math.PI / 180 * k, tw * k, 0);
+    } else { q.pv.position.copy(q.base); q.pv.rotation.set(0, 0, 0); }
+    q.pv.scale.setScalar(1 + .12 * gl);
+  });
+  bike.visible = vis > .01;
+  if (vis !== emb._lastVis || gl !== emb._lastGl) {
+    bikeMaterials().forEach((m) => { m.transparent = vis < 1; m.opacity = vis; m.depthWrite = vis >= 1; if (m.emissive) m.emissive.setRGB(.55 * gl, .12 * gl, 1.0 * gl); });
+    emb._lastVis = vis; emb._lastGl = gl;
+  }
+  if (sebRide) {
+    const on = emb.play || a > .62, e0 = THREE.MathUtils.clamp((a - .62) / .3, 0, 1), e = e0 * e0 * (3 - 2 * e0);
+    sebRide.drop.visible = on; sebRide.drop.position.y = emb.play ? 0 : (1 - e) * 7;
+  }
+}
+function embedRide(dt) {
+  emb.mix += ((emb.play ? 1 : 0) - emb.mix) * Math.min(1, dt * 2.2);
+  if (Math.abs(emb.mix - (emb.play ? 1 : 0)) < .003) emb.mix = emb.play ? 1 : 0;
+  if (emb.play && emb.mix > .3) { step(dt); updateCard(); } else { speed = 0; step(1e-4); }
+  document.body.classList.toggle('play', !!emb.play && emb.mix > .5);
+  if (emb.mix < .02) camPos.copy(camTarget(p, h, 9.5 * camK, 5.2 * camK, 3.2 * camK));
+  followCam(p, h, dt, 9.5 * camK, 5.2 * camK, 3.2 * camK, 1.3, 1.5);
+  if (emb.mix < 1) {
+    const fov = embedPoseInto(_ep, _eq), k = emb.mix * emb.mix * (3 - 2 * emb.mix);
+    camera.position.lerpVectors(_ep, camera.position, k); _eq2.copy(camera.quaternion); camera.quaternion.copy(_eq).slerp(_eq2, k);
+    const nf = fov + (55 - fov) * k; if (Math.abs(camera.fov - nf) > .01) { camera.fov = nf; camera.updateProjectionMatrix(); }
+  } else { if (camera.fov !== 55) { camera.fov = 55; camera.updateProjectionMatrix(); } scene.fog.near = baseFog[0]; scene.fog.far = baseFog[1]; }
+  applyAssembly();
+}
 camPos.copy(camTarget(p, h, 9.5, 5.2, 3.2));
 let last = performance.now();
 renderer.setAnimationLoop((now) => {
   const dt = Math.min((now - last) / 1000, 0.05); last = now;
   frame(dt);
 });
+
+// ===================== Indgang: rådhusbilledet toner over i spillet =====================
+(function intro() {
+  const el = document.getElementById('intro'), cv = document.getElementById('introBg'); let done = false;
+  const img = new Image();
+  img.onload = () => {
+    const W = 420, H = Math.max(240, Math.round(W * innerHeight / innerWidth)); cv.width = W; cv.height = H;
+    const x = cv.getContext('2d'), sc = Math.max(W / img.width, H / img.height), dw = img.width * sc, dh = img.height * sc;
+    x.drawImage(img, (W - dw) / 2, -(dh - H) * .2, dw, dh);
+    const d = x.getImageData(0, 0, W, H), a = d.data;
+    for (let i = 0; i < a.length; i += 4) for (let c = 0; c < 3; c++) { let v = a[i + c] / 255; v = Math.round(v * 9) / 9; v = (v - .5) * 1.02 + .5; a[i + c] = Math.max(0, Math.min(255, v * 255)); }
+    x.putImageData(d, 0, 0);
+  };
+  img.src = 'img/raadhus.png';
+  const go = () => { if (done) return; done = true; introGo = true; el.classList.add('gone'); setTimeout(() => el.remove(), 2600); };
+  el.addEventListener('click', go); document.getElementById('introGo').addEventListener('click', go);
+  addEventListener('keydown', go, { once: true });
+  setTimeout(go, 7000);
+})();
 </script>
 </body>
 </html>
