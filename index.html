@@ -27,7 +27,7 @@
   @media (max-width:760px){ nav button:not(.cta){display:none} }
 
   /* Scroll-scene */
-  #scene{position:relative;height:1100vh}
+  #scene{position:relative;height:830vh}   /* kortere end før: 3D-delen bruger halvt så meget scroll (se FAST) */
   #stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;
     background:var(--sky)}
   #p1{position:absolute;inset:0;pointer-events:none;background:#c9c0bc}
@@ -70,8 +70,9 @@
     transform:translateX(-50%);perspective:1400px}
   #bike{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
   #bike .ly{position:absolute;display:block;transform-origin:50% 50%;will-change:transform;
-    filter:drop-shadow(0 14px 18px rgba(0,0,0,.5));user-select:none;-webkit-user-drag:none;pointer-events:none}
-  #chain{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45))}
+    user-select:none;-webkit-user-drag:none;pointer-events:none}
+  #chain{position:absolute;pointer-events:none;will-change:transform}
+  #bike .gw{position:absolute;display:block;pointer-events:none;will-change:transform}
   #shadow{position:absolute;left:5%;width:88%;top:88%;height:5%;border-radius:50%;
     background:radial-gradient(closest-side,rgba(20,30,20,.38),rgba(0,0,0,0));transform:translateZ(-40px)}
   #gel{position:absolute;inset:0;pointer-events:none;opacity:0;mix-blend-mode:screen;filter:blur(36px);background:radial-gradient(34% 26% at 30% 42%,rgba(176,84,255,.9),transparent 70%),radial-gradient(30% 24% at 62% 36%,rgba(120,60,255,.85),transparent 70%),radial-gradient(28% 22% at 82% 50%,rgba(200,110,255,.8),transparent 70%),radial-gradient(40% 28% at 48% 56%,rgba(150,70,240,.7),transparent 70%)}
@@ -136,7 +137,7 @@
 <body class="loading">
 <div id="loader" role="status" aria-live="polite">
   <div class="lw"><canvas id="ldc" aria-hidden="true"></canvas>
-  <p class="lt"><b>Sebastian cykler verden rundt</b><span id="ldp">0 %</span></p></div>
+  <p class="lt"><b id="ldTxt">Sebastian cykler verden rundt</b><span id="ldp">0 %</span></p></div>
 </div>
 
 
@@ -159,31 +160,30 @@
     <div id="rig" aria-hidden="true">
       <div id="shadow"></div>
       <div id="bike">
-        <img class="ly" data-k="rest"    src="assets/lag/r_rest.webp" alt="">
-        <img class="ly" data-k="down" src="assets/lag/r_down.webp" alt="">
-        <img class="ly" data-k="head" src="assets/lag/r_head.webp" alt="">
-        <img class="ly" data-k="seattube" src="assets/lag/r_seattube.webp" alt="">
-        <img class="ly" data-k="top" src="assets/lag/r_top.webp" alt="">
-        <img class="ly" data-k="rtri" src="assets/lag/r_rtri.webp" alt="">
-        <img class="ly" data-k="seat" src="assets/lag/p_seat.webp" alt="">
-        <img class="ly" data-k="stem" src="assets/lag/p_stem.webp" alt="">
-        <img class="ly" data-k="rack" src="assets/lag/p_rack.webp" alt="">
-        <img class="ly" data-k="panel" src="assets/lag/p_panel.webp" alt="">
-        <img class="ly" data-k="plat" src="assets/lag/p_plat.webp" alt="">
-        <img class="ly" data-k="lamp" src="assets/lag/p_lamp.webp" alt="">
-        <img class="ly" data-k="fork" src="assets/lag/p_fork.webp" alt="">
-        <img class="ly" data-k="kick" src="assets/lag/p_kick.webp" alt="">
-        <img class="ly" data-k="rear"    src="assets/lag/rear.webp"    alt="">
-        <img class="ly" data-k="front"   src="assets/lag/front.webp"   alt="">
-        <svg id="chain" viewBox="40 440 1980 1130" aria-hidden="true">
-          <path id="chain-base" fill="none" stroke="#1c1b1a" stroke-width="9" stroke-linejoin="round"/>
-          <path id="chain-links" fill="none" stroke="#6d675c" stroke-width="5" stroke-dasharray="6 5"/>
-        </svg>
-        <img class="ly" data-k="krank"   src="assets/lag/krank.webp"   alt="">
-        <img class="ly" data-k="pedal_o" src="assets/lag/pedal_o.webp" alt="">
-        <img class="ly" data-k="pedal_n" src="assets/lag/pedal_n.webp" alt="">
-        <img class="ly" data-k="batteri" src="assets/lag/batteri.webp" alt="">
-        <img class="ly" data-k="styr"    src="assets/lag/styr.webp"    alt="">
+        <img class="gw" data-w="hjul_bag_skygge" src="assets/lag3/hjul_bag_skygge.webp" alt="">
+        <canvas class="gw" data-w="hjul_bag"></canvas>
+        <img class="gw" data-w="hjul_for_skygge" src="assets/lag3/hjul_for_skygge.webp" alt="">
+        <canvas class="gw" data-w="hjul_for"></canvas>
+        <img class="ly" data-k="rest"    src="assets/lag/skygge/r_rest.webp" alt="">
+        <img class="ly" data-k="down" src="assets/lag/skygge/r_down.webp" alt="">
+        <img class="ly" data-k="head" src="assets/lag/skygge/r_head.webp" alt="">
+        <img class="ly" data-k="seattube" src="assets/lag/skygge/r_seattube.webp" alt="">
+        <img class="ly" data-k="top" src="assets/lag/skygge/r_top.webp" alt="">
+        <img class="ly" data-k="rtri" src="assets/lag/skygge/r_rtri.webp" alt="">
+        <img class="ly" data-k="seat" src="assets/lag/skygge/p_seat.webp" alt="">
+        <img class="ly" data-k="stem" src="assets/lag/skygge/p_stem.webp" alt="">
+        <img class="ly" data-k="rack" src="assets/lag/skygge/p_rack.webp" alt="">
+        <img class="ly" data-k="panel" src="assets/lag/skygge/p_panel.webp" alt="">
+        <img class="ly" data-k="plat" src="assets/lag/skygge/p_plat.webp" alt="">
+        <img class="ly" data-k="lamp" src="assets/lag/skygge/p_lamp.webp" alt="">
+        <img class="ly" data-k="fork" src="assets/lag/skygge/p_fork.webp" alt="">
+        <img class="ly" data-k="kick" src="assets/lag3/kick.webp" alt="">
+        <canvas id="chain"></canvas>
+        <img class="ly" data-k="krank"   src="assets/lag3/krank.webp"   alt="">
+        <img class="ly" data-k="pedal_o" src="assets/lag3/pedal_t.webp" alt="">
+        <img class="ly" data-k="pedal_n" src="assets/lag3/pedal_b.webp" alt="">
+        <img class="ly" data-k="batteri" src="assets/lag/skygge/batteri.webp" alt="">
+        <img class="ly" data-k="styr"    src="assets/lag/skygge/styr.webp"    alt="">
       </div>
     </div>
 
@@ -232,8 +232,11 @@
 (() => {
   // Position og størrelse (px i originalbilledet) for hvert lag. Verdenen er 1980 x 1130 px, startende i (40, 440).
   const X0 = 40, Y0 = 440, WW = 1980, HH = 1130;
-  const L = { seat:[334,655,253,134], stem:[899,575,159,243], rack:[84,868,313,93], panel:[544,830,401,134], plat:[989,1169,456,98], lamp:[1669,920,83,76], fork:[1434,845,366,451], kick:[1183,1385,63,160], rest:[960,818,656,517], top:[544,803,416,31], head:[899,833,141,520], rtri:[49,882,346,381], seattube:[395,787,150,470], down:[545,944,354,363], stel:[49,575,1751,970], rear:[82,943,522,524], front:[1557,1042,442,444], batteri:[102,801,383,79], styr:[821,471,209,179],
-             krank:[632,1084,210,298], pedal_o:[724,1055,94,39], pedal_n:[659,1378,101,53] }; // krank-gruppen er flyttet (+32,+8) så aksen sidder i krankhuset
+  const L = { seat:[334,655,253,134], stem:[899,575,159,243], rack:[84,868,313,93], panel:[544,830,401,134], plat:[989,1169,456,98], lamp:[1669,920,83,76], fork:[1434,845,366,451], kick:[900,1236,440,137], rest:[960,818,656,517], top:[544,803,416,31], head:[899,833,141,520], rtri:[49,882,346,381], seattube:[395,787,150,470], down:[545,944,354,363], stel:[49,575,1751,970], rear:[82,943,522,524], front:[1557,1042,442,444], batteri:[102,801,383,79], styr:[821,471,209,179],
+             krank:[583,1035,320,380], pedal_o:[567,1035,108,50], pedal_n:[814,1371,112,60] }; // krank, pedaler og støttefod er de nye udklip (assets/lag3); krankakslen sidder i krankhuset (731, 1243)
+  // Billederne i assets/lag/skygge har skyggen bagt ind og 90 px ekstra kant hele vejen rundt (en CSS-skygge pr. del halverede billedraten)
+  const PAD = 90;
+  document.querySelectorAll('.ly').forEach(img => { const [x,y,w,h] = L[img.dataset.k]; L[img.dataset.k] = [x-PAD, y-PAD, w+2*PAD, h+2*PAD]; });
   const el = {};
   document.querySelectorAll('.ly').forEach(img => {
     const [x,y,w,h] = L[img.dataset.k];
@@ -241,10 +244,7 @@
     img.style.width = (w/WW*100)+'%';     img.style.height = (h/HH*100)+'%';
     el[img.dataset.k] = img;
   });
-  { const [x,y,w,h] = L.krank; el.krank.style.transformOrigin = ((732-x)/w*100)+'% '+((1243-y)/h*100)+'%'; }
-  const chainD = 'M342 1127 L732 1173 A70 70 0 0 1 732 1313 L342 1283 A78 78 0 0 1 342 1127 Z';
-  const chainLinks = document.getElementById('chain-links');
-  document.getElementById('chain-base').setAttribute('d', chainD); chainLinks.setAttribute('d', chainD);
+  { const [x,y,w,h] = L.krank; el.krank.style.transformOrigin = ((731-x)/w*100)+'% '+((1243-y)/h*100)+'%'; }
   const bike = document.getElementById('bike');
   const labels = [...document.querySelectorAll('.label')];
   const barEl = document.getElementById('bar'), h1 = document.getElementById('h1');
@@ -270,10 +270,92 @@
   const win = (x,a,b) => Math.min(1, Math.max(0, (x-a)/(b-a)));
   // Cyklen kører på den lille klode (p 0 til R1), skilles ad, og kloden zoomer ud til 3D-verdenens globus (R1 til R2).
   const V1 = .10, R1 = .22, R2 = .46, R3 = .64, R4 = .86, MS = .52, ME = .585, VEND = .30, W = { batteri:[.40,.56], styr:[.54,.70], front:[.68,.90] };
+  // Fra 3D-verdenen (R2) og frem går turen FAST gange hurtigere: den del fylder mindre af scrollet. Første del føles som før.
+  // SK er hvor stor en del af scrollet der bruges før R2. pOfS: scroll (0-1) til forløb, sOfP: omvendt.
+  const FAST = 2, SK = R2 / (R2 + (1 - R2)/FAST);
+  const pOfS = s => s <= SK ? s/SK*R2 : R2 + (s - SK)/(1 - SK)*(1 - R2);
+  const sOfP = q => q <= R2 ? q/R2*SK : SK + (q - R2)/(1 - R2)*(1 - SK);
   const FRAMES = 96, frames = [];
   let vidOK = true, lastKey = '';
   const vid = document.getElementById('vid'), vctx = vid.getContext('2d'), p1 = document.getElementById('p1');
   const chainSvg = document.getElementById('chain'), gelEl = document.getElementById('gel'), floorEl = document.getElementById('floor'), worldEl = document.getElementById('world'), hintEl = document.getElementById('playHint'), rideEl = document.getElementById('ride'), rigEl = document.getElementById('rig'), stageEl = document.getElementById('stage');
+  // ---- Hjul og kæde (assets/lag2 + lag3, se cykel_prototype_v3.html) ----
+  // Hjulene tegnes med WebGL: et cirkulært billede drejes og lægges tilbage i fotoets form, så de ruller uden at slingre.
+  const GW = {}; document.querySelectorAll('#bike .gw').forEach(e => GW[e.dataset.w] = e);
+  const placePx = (e, x, y, w, h) => Object.assign(e.style, { left: ((x-X0)/WW*100)+'%', top: ((y-Y0)/HH*100)+'%', width: (w/WW*100)+'%', height: (h/HH*100)+'%' });
+  const wheelTex = ['hjul_bag', 'hjul_for'].map(n => { const im = new Image(); im.decoding = 'async'; im.src = 'assets/lag2/' + n + '.webp'; return im; });
+  const kaedeTile = new Image(); kaedeTile.src = 'assets/lag2/kaede_led.png';
+  let drawRear = () => {}, drawFront = () => {}, drawChain = () => {};
+  function makeWheel(cv, m, img){
+    const gl = cv.getContext('webgl2', { premultipliedAlpha: true, antialias: true });
+    if (!gl) return null;
+    const NR = 32, NS = m.n, Rt = m.Rt, rmax = 1.02, th = j => j/NS*Math.PI*2;
+    const pos = (rt, j) => { const t = th(j), Rp = m.rim[j % NS], s = rt/Rp; return [m.hub[0] + s*(m.center[0] + Rp*Math.cos(t) - m.hub[0]), m.hub[1] + s*(m.center[1] + Rp*Math.sin(t) - m.hub[1])]; };
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (let j = 0; j < NS; j++){ const [x, y] = pos(Rt*rmax, j); x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    x0 = Math.floor(x0) - 2; y0 = Math.floor(y0) - 2; x1 = Math.ceil(x1) + 2; y1 = Math.ceil(y1) + 2;
+    const W = x1 - x0, H = y1 - y0; cv.width = W; cv.height = H; placePx(cv, x0, y0, W, H);
+    const P = [], A = [], R = [], idx = [];
+    for (let i = 0; i <= NR; i++) for (let j = 0; j <= NS; j++){ const rt = i/NR*Rt*rmax, [x, y] = pos(rt, j); P.push((x-x0)/W*2-1, 1-(y-y0)/H*2); A.push(th(j)); R.push(rt/m.tex); }
+    for (let i = 0; i < NR; i++) for (let j = 0; j < NS; j++){ const a = i*(NS+1)+j, b = a+1, c = a+NS+1, d = c+1; idx.push(a, c, b, b, c, d); }
+    const sh = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+    const pr = gl.createProgram();
+    gl.attachShader(pr, sh(gl.VERTEX_SHADER, `#version 300 es
+      in vec2 p; in float a; in float r; uniform float rot; out vec2 uv;
+      void main(){ float t = a - rot; uv = vec2(.5) + r*vec2(cos(t), sin(t)); gl_Position = vec4(p, 0., 1.); }`));
+    gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, `#version 300 es
+      precision highp float; in vec2 uv; uniform sampler2D tex; out vec4 o; void main(){ o = texture(tex, uv); }`));
+    gl.linkProgram(pr); gl.useProgram(pr);
+    const buf = (data, name, n) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW); const l = gl.getAttribLocation(pr, name); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, n, gl.FLOAT, false, 0, 0); };
+    buf(P, 'p', 2); buf(A, 'a', 1); buf(R, 'r', 1);
+    const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.viewport(0, 0, W, H);
+    const uRot = gl.getUniformLocation(pr, 'rot'); let last = NaN;
+    return rot => { if (rot === last) return; last = rot; gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.uniform1f(uRot, rot); gl.drawElements(gl.TRIANGLES, idx.length, gl.UNSIGNED_SHORT, 0); };
+  }
+  // Kæden: et rigtigt kædeled fra fotoet, gentaget langs over- og underpart. Skyggen tegnes én gang.
+  function makeChain(cv, m, tile){
+    const ctx = cv.getContext('2d'), pts = [...m.upper, ...m.lower], pad = 50;
+    const x0 = Math.min(...pts.map(p => p[0])) - pad, y0 = Math.min(...pts.map(p => p[1])) - pad, x1 = Math.max(...pts.map(p => p[0])) + pad, y1 = Math.max(...pts.map(p => p[1])) + pad;
+    cv.width = x1 - x0; cv.height = y1 - y0; placePx(cv, x0, y0, x1 - x0, y1 - y0);
+    const prep = poly => { const seg = []; let L = 0; for (let i = 1; i < poly.length; i++){ const [ax, ay] = poly[i-1], [bx, by] = poly[i], l = Math.hypot(bx-ax, by-ay); seg.push({ ax, ay, dx: (bx-ax)/l, dy: (by-ay)/l, s: L, l }); L += l; } return { seg, L }; };
+    const runs = [prep(m.upper), prep(m.lower)];
+    const at = (run, u) => { for (const g of run.seg) if (u <= g.s + g.l || g === run.seg[run.seg.length-1]){ const k = u - g.s; return [g.ax + g.dx*k, g.ay + g.dy*k, Math.atan2(g.dy, g.dx)]; } };
+    const shc = document.createElement('canvas'); shc.width = cv.width; shc.height = cv.height;
+    { const s = shc.getContext('2d'); s.filter = 'blur(10px)'; s.strokeStyle = 'rgba(0,0,0,.45)'; s.lineWidth = 12; s.lineJoin = 'round';
+      for (const poly of [m.upper, m.lower]){ s.beginPath(); poly.forEach(([x, y], i) => i ? s.lineTo(x-x0, y-y0+18) : s.moveTo(x-x0, y-y0+18)); s.stroke(); } }
+    const per = tile.width, h = tile.height; let last = NaN;
+    return travel => {
+      if (travel === last) return; last = travel;
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(shc, 0, 0);
+      runs.forEach((run, ri) => {
+        const off = ((ri === 0 ? travel : -travel) % per + per) % per;   // overparten trækkes frem mod klingen
+        for (let u = off - per; u < run.L; u += per){
+          const [x, y, a] = at(run, u + per/2), c = Math.cos(a), s = Math.sin(a);
+          ctx.setTransform(c, s, -s, c, x - x0, y - y0);
+          const sx = Math.max(0, -u), ex = Math.min(per, run.L - u);
+          if (ex > sx) ctx.drawImage(tile, sx, 0, ex - sx, h, -per/2 + sx - .4, -h/2, ex - sx + .8, h);
+        }
+      });
+    };
+  }
+  const whenLoaded = im => im.complete && im.naturalWidth ? Promise.resolve() : new Promise(ok => { im.addEventListener('load', ok, { once: true }); im.addEventListener('error', ok, { once: true }); });
+  fetch('assets/lag3/lag.json').then(r => r.json()).then(async M => {
+    for (const n of ['hjul_bag_skygge', 'hjul_for_skygge']) placePx(GW[n], ...M[n].rect);
+    await Promise.all([...wheelTex, kaedeTile].map(whenLoaded));
+    const r = makeWheel(GW.hjul_bag, M.hjul_bag, wheelTex[0]), f = makeWheel(GW.hjul_for, M.hjul_for, wheelTex[1]);
+    if (r && f){ drawRear = r; drawFront = f; }
+    else { // uden WebGL2: hjulene står stille som billeder
+      for (const [n, i] of [['hjul_bag', 0], ['hjul_for', 1]]){ const im = document.createElement('img'); im.className = 'gw'; im.src = 'assets/lag/skygge/' + (i ? 'front' : 'rear') + '.webp'; im.dataset.w = n; GW[n].replaceWith(im); GW[n] = im; const [x, y, w, h] = L[i ? 'front' : 'rear']; placePx(im, x-PAD, y-PAD, w+2*PAD, h+2*PAD); }
+    }
+    if (kaedeTile.naturalWidth) drawChain = makeChain(chainSvg, M.kaede, kaedeTile);
+    lastKey = ''; try { draw(); } catch(e){}   // mens siden stadig henter, er scenen ikke målt endnu
+  });
   for (let i=0;i<FRAMES;i++){
     const im = new Image(); im.decoding = 'async'; im.src = 'assets/video/f'+String(i).padStart(3,'0')+'.webp';
     if (i===0){ im.onerror = () => { vidOK = false; draw(); }; im.onload = () => { lastKey=''; draw(); }; }
@@ -426,9 +508,9 @@
   }
 
   let planetKey = '';
-  function drawPlanet(dist, rise, zo, gy, W, H){
+  function drawPlanet(dist, zo, gy, W, H){
     const dpr = Math.min(devicePixelRatio || 1, 2), cw = Math.round(W*dpr), ch = Math.round(H*dpr);
-    const key = dist.toFixed(1)+'|'+rise.toFixed(4)+'|'+zo.toFixed(4)+'|'+gy.toFixed(1)+'|'+cw+'x'+ch;
+    const key = dist.toFixed(1)+'|'+zo.toFixed(4)+'|'+gy.toFixed(1)+'|'+cw+'x'+ch;
     if (key === planetKey) return; planetKey = key;
     if (planetCv.width !== cw || planetCv.height !== ch){ planetCv.width = cw; planetCv.height = ch; }
     pc.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -447,7 +529,7 @@
     // Kloden: stor under cyklen, til sidst en lille globus midt på skærmen (samme størrelse som 3D-kloden når den toner ind)
     const Rpx = Math.max(W*1.1, H*1.05), s0 = Rpx/R0, s1 = .155*H/R0, sc = s0*Math.pow(s1/s0, zo);
     // Klodens top glider jævnt fra vejen under cyklen op til globussens top, så horisonten aldrig forsvinder
-    const top = (gy + (RB-R0)*s0)*(1-zo) + (H*.51 - .155*H)*zo + rise*rise*H*.45, cy = top + R0*sc, rot = dist/(RB*s0);
+    const top = (gy + (RB-R0)*s0)*(1-zo) + (H*.51 - .155*H)*zo, cy = top + R0*sc, rot = dist/(RB*s0);
     globe(pc, W/2, cy, sc, rot, W/2 >= R0*sc*.9 ? 9 : Math.asin(W/2/(R0*sc)) + .35);
   }
   // Selve kloden med huse, træer og vej. Tegnes på den givne flade; half = hvor langt ud til siden der tegnes ting (radianer).
@@ -474,7 +556,7 @@
     if (playMode) return;
     const r = document.getElementById('scene').getBoundingClientRect();
     const span = r.height - innerHeight;   // kan være 0, mens et link åbnes (fx i Arc), og så må der ikke deles med 0
-    target = span > 0 ? Math.min(1, Math.max(0, -r.top / span)) : 0;
+    target = span > 0 ? pOfS(Math.min(1, Math.max(0, -r.top / span))) : 0;
     if (!worldReady && target > HOLD) target = HOLD;   // vent på 3D-verdenen ved den lille globus
     if (!running){ running = true; requestAnimationFrame(tick); }
   }
@@ -490,7 +572,7 @@
   let lockY = 0, playMode = false, pg = 0, worldReady = false, lastMsg = '', loadedWorld = false, lastPlay = false;
   const lite = innerWidth < 760 || (navigator.hardwareConcurrency||8) <= 4;
   let worldT0 = 0;
-  function loadWorld(){ if (loadedWorld) return; loadedWorld = true; worldT0 = performance.now(); worldEl.src = 'prototype/spil_v20.html?embed=1'; }
+  function loadWorld(){ if (loadedWorld) return; loadedWorld = true; worldT0 = performance.now(); worldEl.src = 'prototype/spil_v23.html?embed=1'; }
   addEventListener('message', (e) => { if (e.origin === location.origin && e.data && e.data.type === 'game-ready'){ worldReady = true; lastMsg = ''; readScroll(); draw(); } });
   const holdEl = document.getElementById('holdMsg');
   setInterval(() => { if (!worldReady && loadedWorld && holdEl.classList.contains('on') && performance.now() - worldT0 > 25000) holdEl.textContent = 'Verdenen kunne ikke hentes. Prøv at genindlæse siden.'; }, 2000);
@@ -556,22 +638,24 @@
     const mx = innerWidth < 760 ? .5 : 1; // mindre sideværts bevægelse på smalle skærme
     // Overgang fra video til lag
     const kk = vidOK ? ease(win(p,V1,V1+.03)) : 1;
-    const pin = vidOK ? ease(win(p,V1+.005,V1+.065)) : 1;   // himmel og klode toner ind, når cyklen er kørt ud af videoen
+    const pin = vidOK ? ease(win(p,V1+.005,V1+.10)) : 1;    // himmel og klode toner langsomt ind, når cyklen er kørt ud af videoen
     drawVideo(kk >= 1 ? -1 : Math.min(FRAMES-1, Math.round(win(p,0,V1)*(FRAMES-1))));
     p1.style.visibility = pin >= 1 ? 'hidden' : 'visible';
     const q = p < R1 ? VEND : VEND + Math.min(1, (p-R1)/(R2-R1))*(.95-VEND);   // adskillelsen kører i den oprindelige tidsskala
     const mo = win(p,MS,ME), gl = Math.sin(Math.PI*mo);
-    rigEl.style.opacity = String(kk*(1-ease(mo)));
+    rigEl.style.opacity = String(Math.max(document.body.classList.contains('loading') ? .002 : 0, kk*(1-ease(mo))));
     gelEl.style.opacity = String(gl*.85);
     document.getElementById('shadow').style.opacity = String(1-ease(win(p,R1+.04,R2)));
-    for (const kk2 in el) el[kk2].style.filter = gl > .02 ? `blur(${(gl*9).toFixed(1)}px) saturate(${(1+gl*.9).toFixed(2)}) brightness(${(1+gl*.35).toFixed(2)}) drop-shadow(0 0 ${(gl*26).toFixed(0)}px rgba(165,75,255,${(gl*.95).toFixed(2)}))` : '';
+    rigEl.style.filter = gl > .02 ? `blur(${(gl*9).toFixed(1)}px) saturate(${(1+gl*.9).toFixed(2)}) brightness(${(1+gl*.35).toFixed(2)}) drop-shadow(0 0 ${(gl*26).toFixed(0)}px rgba(165,75,255,${(gl*.95).toFixed(2)}))` : '';
     // Kørt distance: hjulene ruller på vejen (bagehjul radius 261, forhjul 221 i verdenspixels)
-    const S = 10*innerHeight, k0 = rw/WW, dist = (Math.min(p,R1) + .05*ease(win(p,R1,R1+.12)))*S*.9;
+    // Kloden trilles ind under cyklen, mens den toner frem: den starter drejet ROLL radianer bagud og indhenter det. Hjulene drejer med.
+    const ROLL = .5, roll = (1-pin)*ROLL*(R0-B0*.5)*Math.max(innerWidth*1.1, innerHeight*1.05)/R0;
+    const S = 10*innerHeight, k0 = rw/WW, dist = (Math.min(p,R1) + .05*ease(win(p,R1,R1+.12)))*S*.9 - roll;
     const rearDeg = dist/(261*k0)*57.2958, frontDeg = dist/(221*k0)*57.2958;
     const rr0 = rigEl.getBoundingClientRect(), sr0 = stageEl.getBoundingClientRect();
     const rideOp = pin*(1-ease(win(p,R2-.03,R2+.005)));   // 2D-kloden toner over i 3D-kloden, mens den står stille (f = 0)
     rideEl.style.opacity = String(rideOp);
-    if (rideOp > 0) drawPlanet(dist - V1*S*.9, 1-pin, ease(win(p,R1+.03,R2-.03)), rr0.top - sr0.top + .909*rr0.height, sr0.width, sr0.height);
+    if (rideOp > 0) drawPlanet(dist - V1*S*.9, ease(win(p,R1+.03,R2-.03)), rr0.top - sr0.top + .909*rr0.height, sr0.width, sr0.height);
     floorEl.style.opacity = String(1-ease(win(p,R2,R2+.08)));
     const settle = 75*(rw/WW)*(1-ease(win(p,V1,V1+.06))); // videoens cykel har rullet lidt frem
     const ang = -10 - 24*ease(win(q,.36,.62)) + 14*ease(win(q,.62,.92));
@@ -587,7 +671,7 @@
     { const dx = ks*8*u*mx + Math.sin(pw*47+2)*1.6*u*ks, dy = -ks*23*u + Math.sin(pw*60+2)*1.8*u*ks, r = ks*10 + Math.sin(pw*45+1)*4*ks + spin(-1,.36); el.styr.style.transform = T(0, dx, dy, ks*180, r); PR.bars = rel(dx,dy,r); }
 
     const kf = ease(win(q,...W.front));
-    { const dx = kf*22*u*mx + Math.sin(pw*49+3)*1.6*u*kf, dy = -kf*13*u + Math.sin(pw*55+3)*1.8*u*kf; el.front.style.transform = `translate3d(${dx}px,${dy}px,${kf*120}px) rotate(${frontDeg}deg)`; PR.wheel = rel(dx,dy,0); }
+    { const dx = kf*22*u*mx + Math.sin(pw*49+3)*1.6*u*kf, dy = -kf*13*u + Math.sin(pw*55+3)*1.8*u*kf; { const t = `translate3d(${dx}px,${dy}px,${kf*120}px)`; GW.hjul_for.style.transform = t; GW.hjul_for_skygge.style.transform = t; drawFront(frontDeg*Math.PI/180); } PR.wheel = rel(dx,dy,0); }
     // Stellets stykker: hvert får sin egen bane op i luften, forskudt i tid
     const PCS = { seat:[[.22,.31],-.09,-.18,-7], stem:[[.25,.33],.03,-.22,4], rack:[[.27,.36],-.15,-.09,-8], panel:[[.30,.40],-.02,-.14,3],
                   plat:[[.33,.42],.05,-.16,5], lamp:[[.35,.43],.12,-.21,12], fork:[[.37,.45],.14,-.08,6], kick:[[.38,.46],0,-.11,18],
@@ -602,16 +686,16 @@
     // Bagehjul og drev (krank, pedaler, kæde) flyver også, men hjulet bliver ved at rulle
     const fl = (w, ox, oy, ph) => { const e = ease(win(p, w[0], w[1])); return [(ox*e + Math.sin(pw*47+ph)*.02*e)*rw*mx, (oy*e + Math.sin(pw*43+ph*1.3)*.024*e)*rw]; };
     const [rdx, rdy] = fl([.37,.46], -.09, -.13, 1.1), [ddx, ddy] = fl([.35,.45], .03, -.07, 2.3);
-    el.rear.style.transform = `translate3d(${rdx}px,${rdy}px,0) rotate(${rearDeg}deg)`;
+    { const t = `translate3d(${rdx}px,${rdy}px,0)`; GW.hjul_bag.style.transform = t; GW.hjul_bag_skygge.style.transform = t; drawRear(rearDeg*Math.PI/180); }
     PR.rearw = rel(rdx, rdy, 0); PR.drive = rel(ddx, ddy, 0); DRV = [ddx, ddy];
 
     // Pedalarme, klinge og pedaler drejer om krankhuset. Pedalerne holder sig vandrette.
     const th = rearDeg/2.2, rad = th*Math.PI/180, c = Math.cos(rad), sn = Math.sin(rad), k = rw/WW;
     el.krank.style.transform = `translate3d(${DRV[0]}px,${DRV[1]}px,0) rotate(${th}deg)`;
     chainSvg.style.transform = `translate(${DRV[0]}px,${DRV[1]}px)`;
-    for (const [n,vx,vy] of [['pedal_o',39,-169],['pedal_n',-23,161]])
+    for (const [n,vx,vy] of [['pedal_o',-120,-180],['pedal_n',147,144]])
       el[n].style.transform = `translate(${(vx*c-vy*sn-vx)*k+DRV[0]}px,${(vx*sn+vy*c-vy)*k+DRV[1]}px)`;
-    chainLinks.style.strokeDashoffset = String(-70*rad); // kæden følger klingen (radius 70)
+    drawChain(rad*72); // kæden følger klingen (radius 72)
 
     const idx = p > R3 ? -1 : q<.34 ? -1 : q<.46 ? 0 : q<.60 ? 1 : q<.74 ? 2 : 3;
     labels.forEach((l,i) => l.classList.toggle('on', i===idx && !playMode));
@@ -627,7 +711,7 @@
   const MAXV = .055; let lastT = 0;
 
   // Automatisk scroll: efter den mørke baggrund er kommet, fortsætter siden i roligt, fast tempo
-  const AUTO = .034;            // andel af hele forløbet pr. sekund (cirka 30 sekunder i alt)
+  const AUTO = .034*SK/R2;      // scroll pr. sekund: giver .034 af forløbet pr. sekund i første del og det dobbelte i 3D-delen
   const autoBtn = document.getElementById('autoBtn');
   let autoOn = false, autoStarted = false, autoY = 0, autoT = 0, selfScroll = false;
   const range = () => document.documentElement.scrollHeight - innerHeight;
@@ -644,7 +728,7 @@
     const dt = Math.min(.1, autoT ? (now - autoT)/1000 : .016); autoT = now;
     // Starter først når man selv har scrollet gennem videoen, og kloden er kommet ind under cyklen
     if (!autoStarted && !playMode && p >= V1 + .05){ autoStarted = true; setAuto(true); }
-    if (autoOn && !playMode && (worldReady || autoY < HOLD*range())){
+    if (autoOn && !playMode && (worldReady || autoY < sOfP(HOLD)*range())){
       const end = range();
       if (p >= R4 + .07 || autoY >= end - 1){ setAuto(false); autoBtn.classList.remove('show'); }
       else { autoY = Math.min(end, autoY + AUTO*end*dt); selfScroll = true; scrollTo(0, autoY); requestAnimationFrame(() => { selfScroll = false; }); }
@@ -656,13 +740,13 @@
   function tick(now){
     const dt = Math.min(.1, lastT ? (now - lastT) / 1000 : .016); lastT = now;
     if (reduce || !Number.isFinite(p)) p = target;
-    else { let dp = (target - p) * (1 - Math.pow(.9, dt*60)); const cap = MAXV*dt; if (dp > cap) dp = cap; else if (dp < -cap) dp = -cap; p += dp; }
+    else { let dp = (target - p) * (1 - Math.pow(.9, dt*60)); const cap = (p >= R2 - .01 ? MAXV*FAST : MAXV)*dt; if (dp > cap) dp = cap; else if (dp < -cap) dp = -cap; p += dp; }
     if (Math.abs(target-p) < .0004) p = target;
     draw();
     if (p !== target) requestAnimationFrame(tick); else { running = false; lastT = 0; }
   }
   // Menuen hopper til det sted i turen, hvor emnet vises (eller til spillet)
-  const scrollFor = pp => pp * (document.getElementById('scene').offsetHeight - innerHeight);
+  const scrollFor = pp => sOfP(pp) * (document.getElementById('scene').offsetHeight - innerHeight);
   document.querySelectorAll('nav [data-go]').forEach(b => b.addEventListener('click', () => {
     const g = b.dataset.go, pp = g === 'play' ? R4 + .08 : R1 + ([.40,.53,.67,.80][+g] - VEND)/(.95 - VEND)*(R2 - R1);
     if (autoOn) setAuto(false);
@@ -708,7 +792,9 @@
   }
 
   const loaderEl = document.getElementById('loader'), ldc = document.getElementById('ldc'), ldp = document.getElementById('ldp'), lctx = ldc.getContext('2d');
-  const toLoad = [...frames, ...document.querySelectorAll('#bike img')];
+  const toLoad = [...frames, ...document.querySelectorAll('#bike img'), ...wheelTex];
+  const ldTxt = document.getElementById('ldTxt');
+  let decodeP = null, decoded = false;
   let nLoaded = 0, shown = 0, loaderDone = false, ldT0 = performance.now(), ldLast = 0, pedal = 0;
   const count = () => { nLoaded++; };
   toLoad.forEach(im => { if (im.complete) nLoaded++; else { im.addEventListener('load', count, { once: true }); im.addEventListener('error', count, { once: true }); } });
@@ -716,14 +802,20 @@
     if (loaderDone) return; loaderDone = true;
     scrollTo(0, 0); document.body.classList.remove('loading'); loaderEl.classList.add('done');
     lastKey = ''; readScroll(); draw();
-    setTimeout(loadWorld, 250);
+    loadWorld();
   }
   (function loaderLoop(now){
     if (loaderDone && !loaderEl.isConnected) return;
     const dt = Math.min(.05, ldLast ? (now - ldLast)/1000 : .016); ldLast = now;
     const real = toLoad.length ? nLoaded/toLoad.length : 1, waited = now - ldT0;
-    // Turen følger det hentede, men tager mindst 1,6 sekunder, så man når at se den. Efter 15 sekunder går siden i gang alligevel.
-    const goal = Math.min(real, waited/1600, 1);
+    // Først billederne (65 % af turen), så bygges 3D-verdenen (35 %), så den ikke skal bygges, mens man scroller.
+    // Turen tager mindst 1,6 sekunder. Der ventes på hele verdenen, så intet skal bygges, mens man scroller (højst 30 sekunder).
+    // Første gang en browser ser siden, skal 3D-grafikken bygges fra bunden, og det kan tage lidt tid.
+    if (real >= 1 && !decodeP) decodeP = Promise.all([...document.querySelectorAll('#bike img')].map(i => i.decode().catch(() => {}))).then(() => { decoded = true; });
+    if (decoded && !loadedWorld) loadWorld();
+    const wp = worldReady ? 1 : loadedWorld ? Math.min(.9, (now - worldT0)/5000) : 0;
+    if (loadedWorld && !worldReady) ldTxt.textContent = now - worldT0 > 6000 ? 'Bygger verdenen. Første gang tager det lidt længere' : 'Bygger verdenen';
+    const goal = Math.min(.65*(decoded ? 1 : real*.98) + .35*wp, waited/1600, 1);
     shown += (goal - shown)*Math.min(1, dt*4); if (Math.abs(goal - shown) < .003) shown = goal;
     pedal += dt*7;
     const css = ldc.clientWidth || 300, dpr = Math.min(devicePixelRatio || 1, 2), px = Math.round(css*dpr);
@@ -740,8 +832,8 @@
     pc.restore();
     pc = prev;
     ldp.textContent = Math.round(shown*100) + ' %';
-    if (!loaderDone && shown >= .999 && real >= 1) finishLoading();
-    if (!loaderDone && waited > 15000) finishLoading();
+    if (!loaderDone && shown >= .999 && worldReady) finishLoading();
+    if (!loaderDone && waited > 30000) finishLoading();
     if (loaderDone && waited > 60000) return;
     if (!loaderDone || getComputedStyle(loaderEl).visibility !== 'hidden') requestAnimationFrame(loaderLoop);
   })(performance.now());
