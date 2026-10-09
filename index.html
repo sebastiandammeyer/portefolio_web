@@ -7,26 +7,31 @@
 <meta name="description" content="Portefølje med skills, speciale, elektronik og cykler.">
 <style>
   :root{
-    --bg:#0a0a0b; --fg:#f2f1ec; --mute:#8a8a85; --accent:#b6ff1a; --card:#141416; --line:#26262a;
+    --bg:#0a0a0b; --fg:#f2f1ec; --sky:#a9dcd4; --ink:#1a1d22; --ink2:#262b31; --mute:#8a8a85; --accent:#b6ff1a; --card:#141416; --line:#26262a;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:auto}
   body{background:var(--bg);color:var(--fg);font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
   a{color:inherit}
 
-  nav{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:6px;align-items:center;
-    padding:8px 10px;border-radius:14px;background:rgba(30,30,33,.7);backdrop-filter:blur(10px);border:1px solid var(--line)}
-  nav .logo{font-weight:700;padding:6px 12px;letter-spacing:-.02em}
-  nav a.pill{font-size:13px;text-decoration:none;color:var(--mute);padding:7px 12px;border-radius:9px}
-  nav a.pill:hover{color:var(--fg)}
-  nav a.cta{background:var(--accent);color:#000;font-weight:600}
+  /* Klassisk topmenu, lys glas over studiet og kloden */
+  nav{position:fixed;top:14px;left:16px;right:16px;z-index:10;display:flex;align-items:center;gap:4px;max-width:1240px;margin:0 auto;
+    padding:8px 8px 8px 16px;border-radius:16px;background:rgba(255,255,255,.55);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);
+    border:1px solid rgba(26,29,34,.08);box-shadow:0 6px 24px rgba(26,29,34,.08);transition:opacity .3s}
+  nav .logo{font-weight:700;letter-spacing:-.02em;color:var(--ink);text-decoration:none;margin-right:auto;font-size:15px}
+  nav button{font:inherit;font-size:14px;font-weight:500;color:var(--ink2);background:none;border:0;padding:9px 12px;border-radius:10px;cursor:pointer}
+  nav button:hover{background:rgba(26,29,34,.06);color:var(--ink)}
+  nav button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  nav button.cta{background:var(--ink);color:#fff;font-weight:600;margin-left:6px;padding:9px 16px}
+  nav button.cta:hover{background:#000;color:#fff}
+  @media (max-width:760px){ nav button:not(.cta){display:none} }
 
   /* Scroll-scene */
   #scene{position:relative;height:1100vh}
   #stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;
-    background:radial-gradient(120% 80% at 50% 0%,#2a1d12 0%,#0a0a0b 60%)}
-  #p1{position:absolute;inset:0;pointer-events:none;background:#4c4846}
-  #vid{position:absolute;inset:0;width:100%;height:100%;filter:brightness(.5) contrast(1.05) saturate(.92)}
+    background:var(--sky)}
+  #p1{position:absolute;inset:0;pointer-events:none;background:#c9c0bc}
+  #vid{position:absolute;inset:0;width:100%;height:100%;filter:brightness(1.16) saturate(1.04)}
   #vig{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 42%,rgba(10,10,11,0) 50%,rgba(10,10,11,.7) 100%),linear-gradient(to bottom,rgba(10,10,11,0) 52%,rgba(10,10,11,.92) 100%)}
   #rig{opacity:0}
   /* Kørsel på stedet: skyline, træer og vej glider forbi, mens hjulene drejer */
@@ -50,7 +55,8 @@
   #autoBtn.show{opacity:1;pointer-events:auto}
   body.playing #autoBtn{opacity:0;pointer-events:none}
   #playHint{display:none !important;position:absolute;left:0;right:0;bottom:3.5vh;text-align:center;font-size:13px;color:#fff;opacity:0;pointer-events:none;text-shadow:0 2px 12px rgba(0,0,0,.5);transition:opacity .6s}
-  #ride{position:absolute;inset:0;opacity:0;pointer-events:none;overflow:hidden;--d:0px;--gy:62vh}
+  #planet{position:absolute;inset:0;width:100%;height:100%;display:block}
+  #ride{position:absolute;inset:0;opacity:1;pointer-events:none;overflow:hidden;--d:0px;--gy:62vh}
   #ride .lyr{position:absolute;left:0;right:0;background-repeat:repeat-x}
   #far{bottom:calc(100% - var(--gy) + 0px);height:34vh;background-size:auto 100%;background-position:calc(var(--d) * -0.07) bottom;opacity:.9}
   #mid{bottom:calc(100% - var(--gy) + 0px);height:19vh;background-size:auto 100%;background-position:calc(var(--d) * -0.32) bottom}
@@ -59,7 +65,7 @@
   #lane1{top:calc(var(--gy) + (100% - var(--gy)) * .30);height:.55vh;min-height:3px;background:repeating-linear-gradient(90deg,rgba(182,255,26,.85) 0 7vw,transparent 7vw 15vw);background-position:calc(var(--d) * -1) 0}
   #lane2{top:calc(var(--gy) + (100% - var(--gy)) * .66);height:1vh;min-height:5px;background:repeating-linear-gradient(90deg,rgba(242,241,236,.55) 0 11vw,transparent 11vw 26vw);background-position:calc(var(--d) * -1.9) 0}
   #spk{top:var(--gy);bottom:0;background:radial-gradient(circle at 20% 30%,rgba(255,255,255,.07) 0 1.2px,transparent 1.6px),radial-gradient(circle at 70% 60%,rgba(255,255,255,.05) 0 1.4px,transparent 1.8px);background-size:97px 61px,143px 83px;background-position:calc(var(--d) * -1) 0,calc(var(--d) * -1.4) 0}
-  #floor{position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,.55))}
+  #floor{display:none;position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,.55))}
   #rig{position:absolute;left:50%;top:15vh;top:15svh;width:min(92vw,91vh,1250px);aspect-ratio:1980/1130;
     transform:translateX(-50%);perspective:1400px}
   #bike{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
@@ -67,19 +73,26 @@
     filter:drop-shadow(0 14px 18px rgba(0,0,0,.5));user-select:none;-webkit-user-drag:none;pointer-events:none}
   #chain{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45))}
   #shadow{position:absolute;left:5%;width:88%;top:88%;height:5%;border-radius:50%;
-    background:radial-gradient(closest-side,rgba(0,0,0,.75),rgba(0,0,0,0));transform:translateZ(-40px)}
+    background:radial-gradient(closest-side,rgba(20,30,20,.38),rgba(0,0,0,0));transform:translateZ(-40px)}
   #gel{position:absolute;inset:0;pointer-events:none;opacity:0;mix-blend-mode:screen;filter:blur(36px);background:radial-gradient(34% 26% at 30% 42%,rgba(176,84,255,.9),transparent 70%),radial-gradient(30% 24% at 62% 36%,rgba(120,60,255,.85),transparent 70%),radial-gradient(28% 22% at 82% 50%,rgba(200,110,255,.8),transparent 70%),radial-gradient(40% 28% at 48% 56%,rgba(150,70,240,.7),transparent 70%)}
-  #hero{position:absolute;left:0;right:0;bottom:6vh;text-align:center;pointer-events:none}
-  #hero h1{font-size:clamp(36px,6.2vw,92px);letter-spacing:-.04em;line-height:.95;font-weight:600}
-  #hero p{margin-top:14px;color:var(--mute);font-size:12px;letter-spacing:.2em;text-transform:uppercase}
+  #hero{position:absolute;left:6vw;right:6vw;bottom:7vh;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;pointer-events:none;color:var(--ink)}
+  #hero .eyebrow{font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink2);margin-bottom:12px}
+  #hero h1{font-size:clamp(40px,6.4vw,92px);letter-spacing:-.045em;line-height:.95;font-weight:700}
+  #hero .intro{margin-top:16px;max-width:34em;font-size:clamp(16px,1.35vw,19px);line-height:1.5;color:var(--ink2)}
+  #cue{display:flex;align-items:center;gap:12px;font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);white-space:nowrap}
+  #cue span{position:relative;width:1.5px;height:44px;background:rgba(26,29,34,.18);overflow:hidden}
+  #cue span::after{content:"";position:absolute;left:0;top:-40%;width:100%;height:40%;background:var(--ink);animation:cue 1.8s ease-in-out infinite}
+  @keyframes cue{to{top:100%}}
+  @media (max-width:760px){ #hero{bottom:5vh;flex-direction:column;align-items:flex-start} #cue{display:none} }
+  @media (prefers-reduced-motion:reduce){ #cue span::after{animation:none;top:30%} }
   .ch{opacity:.2;transition:opacity .15s}.ch.lit{opacity:1}
 
   .label{position:absolute;max-width:min(380px,80vw);opacity:0;transform:translateY(14px);transition:opacity .35s,transform .35s;pointer-events:none}
   .label.on{opacity:1;transform:none;pointer-events:auto}
-  .label{text-shadow:0 2px 16px rgba(0,0,0,.55)}
-  .label .num{color:var(--accent);font-size:12px;letter-spacing:.2em}
+  .label{color:var(--ink)}
+  .label .num{color:var(--ink);font-weight:700;font-size:12px;letter-spacing:.2em}
   .label h2{font-size:clamp(28px,4.2vw,56px);letter-spacing:-.03em;line-height:1;margin:8px 0 10px;font-weight:600}
-  .label p{color:#d9d9d3;line-height:1.5;font-size:15px}
+  .label p{color:var(--ink2);line-height:1.5;font-size:15px}
   .label a{display:inline-block;margin-top:14px;font-size:13px;font-weight:600;color:#000;background:var(--accent);padding:9px 14px;border-radius:10px;text-decoration:none}
   .l-left{left:6vw;bottom:7vh}
   .l-right{right:6vw;bottom:7vh;text-align:right}
@@ -113,11 +126,20 @@
 
 
 
+<nav aria-label="Hovedmenu">
+  <a class="logo" href="#">Sebastian Dammeyer</a>
+  <button type="button" data-go="0">Speciale</button>
+  <button type="button" data-go="1">Elektronik</button>
+  <button type="button" data-go="2">Claude &amp; mods</button>
+  <button type="button" data-go="3">Cykler</button>
+  <button type="button" class="cta" data-go="play">Spil</button>
+</nav>
+
 <div id="scene">
   <div id="stage">
-    <div id="p1"><canvas id="vid"></canvas><div id="vig"></div></div>
-    <iframe id="world" title="3D-verden" tabindex="-1"></iframe>
-    <div id="ride" aria-hidden="true"><div class="lyr" id="far"></div><div class="lyr" id="mid"></div><div class="lyr" id="road"></div><div id="spk"></div><div id="lane1"></div><div id="lane2"></div></div>
+        <iframe id="world" title="3D-verden" tabindex="-1"></iframe>
+    <div id="p1"><canvas id="vid"></canvas></div>
+    <div id="ride" aria-hidden="true"><canvas id="planet"></canvas></div>
     <div id="floor"></div>
     <div id="rig" aria-hidden="true">
       <div id="shadow"></div>
@@ -152,8 +174,12 @@
 
     <div id="gel" aria-hidden="true"></div>
     <div id="hero">
-      <h1 id="h1">Sebastian<br>Dammeyer</h1>
-      <p>Scroll for at køre</p>
+      <div>
+        <p class="eyebrow">Portefølje · Aarhus</p>
+        <h1 id="h1">Sebastian Dammeyer</h1>
+        <p class="intro">Speciale, elektronik, Claude-mods og cykler jeg selv har bygget. Scroll, så kører long johnen ud i min verden.</p>
+      </div>
+      <div id="cue">Scroll for at køre <span></span></div>
     </div>
 
     <div class="label l-right" data-i="0">
@@ -224,37 +250,9 @@
   const lblCh = labels.map(l => split(l.querySelector('h2')));
 
 
-  // Skyline (langt væk) og træer/lygtepæle (tættere på) som gentagne flader
-  (function scenery(){
-    let seed = 7; const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
-    const uri = svg => 'url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
-    let a = '<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="340" viewBox="0 0 2400 340">';
-    for (let x = 0; x < 2400; ){
-      const w = 50 + rnd()*90, h = 50 + rnd()*120, tone = 28 + (rnd()*10|0);
-      a += `<rect x="${x}" y="${340-h}" width="${w}" height="${h}" fill="rgb(${tone},${tone-3},${tone-6})"/>`;
-      for (let k = 0; k < 5; k++) if (rnd() < .45) a += `<rect x="${x+6+rnd()*(w-16)}" y="${340-h+10+rnd()*(h-24)}" width="5" height="7" fill="#ffd27a" opacity="${.25+rnd()*.5}"/>`;
-      x += w + 4 + rnd()*14;
-    }
-    // Aarhus Rådhus: tårn med ur og grønt tag
-    a += '<g transform="translate(1500 0)"><rect x="0" y="40" width="46" height="300" fill="#2e2a26"/>';
-    for (const y of [90,150,210]) a += `<rect x="-6" y="${y}" width="58" height="5" fill="#3a352f"/>`;
-    a += '<circle cx="23" cy="120" r="19" fill="#4a443c"/><circle cx="23" cy="120" r="16" fill="#cfc7b6" opacity=".55"/><rect x="21" y="106" width="3" height="14" fill="#2a2724"/><rect x="23" y="119" width="10" height="3" fill="#2a2724"/><rect x="-2" y="34" width="50" height="8" fill="#3f6b5c"/><polygon points="23,2 14,34 32,34" fill="#3f6b5c"/></g>';
-    // Domkirken
-    a += '<g transform="translate(560 0)"><rect x="0" y="90" width="58" height="250" fill="#2c2825"/><polygon points="0,90 29,10 58,90" fill="#38332e"/></g>';
-    a += '</svg>';
-    document.getElementById('far').style.backgroundImage = uri(a);
-    let m = '<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="200" viewBox="0 0 1400 200">';
-    for (let x = 60; x < 1400; x += 150 + rnd()*120){
-      if (rnd() < .6) m += `<rect x="${x-4}" y="120" width="8" height="80" fill="#2a241f"/><circle cx="${x}" cy="100" r="${34+rnd()*14}" fill="#2f2923"/>`;
-      else m += `<rect x="${x-2}" y="50" width="4" height="150" fill="#3a342d"/><rect x="${x-2}" y="48" width="26" height="4" fill="#3a342d"/><circle cx="${x+22}" cy="58" r="7" fill="#ffd27a" opacity=".8"/>`;
-    }
-    m += '</svg>';
-    document.getElementById('mid').style.backgroundImage = uri(m);
-  })();
-
   const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
   const win = (x,a,b) => Math.min(1, Math.max(0, (x-a)/(b-a)));
-  // Første del af scrollen er videoen (p 0 til .30). Derefter går den over i de klippede lag, som skilles ad.
+  // Cyklen kører på den lille klode (p 0 til R1), skilles ad, og kloden zoomer ud til 3D-verdenens globus (R1 til R2).
   const V1 = .10, R1 = .22, R2 = .46, R3 = .64, R4 = .86, MS = .52, ME = .585, VEND = .30, W = { batteri:[.40,.56], styr:[.54,.70], front:[.68,.90] };
   const FRAMES = 96, frames = [];
   let vidOK = true, lastKey = '';
@@ -270,7 +268,7 @@
   // Blød kant på videoen, så rammen ikke kan ses mod resten af scenen
   const feather = document.createElement('canvas'), fctx = feather.getContext('2d');
   const maskC = document.createElement('canvas'); maskC.width = 1100; maskC.height = 640;
-  { const m = maskC.getContext('2d'), fx = 170, fy = 110;
+  { const m = maskC.getContext('2d'), fx = 120, fy = 120;
     m.fillStyle = '#fff'; m.fillRect(0,0,1100,640);
     m.globalCompositeOperation = 'destination-in';
     let g = m.createLinearGradient(0,0,fx,0); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'#000'); m.fillStyle=g; m.fillRect(0,0,1100,640);
@@ -285,14 +283,170 @@
     const key = fi+'|'+cw+'x'+ch+'|'+Math.round(rr.left)+'|'+Math.round(rr.width);
     if (key === lastKey) return; lastKey = key;
     if (vid.width !== cw || vid.height !== ch){ vid.width = cw; vid.height = ch; }
-    const g = vctx.createLinearGradient(0,0,0,ch); g.addColorStop(0,'rgb(151,142,138)'); g.addColorStop(1,'rgb(172,163,159)');
+    // Studiet: samme lys som i videoen (spot i midten, mørkere sider, lyst gulv), så videoens kant ikke kan ses
+    const s0 = rr.width/WW*dpr, vx = (rr.left-sr.left)*dpr + (VW.x-X0)*s0, vy = (rr.top-sr.top)*dpr + (VW.y-Y0)*s0, vw = VW.w*s0, vh = VW.h*s0;
+    const g = vctx.createLinearGradient(0,0,0,ch); g.addColorStop(0,'rgb(146,138,134)'); g.addColorStop(Math.min(.99,Math.max(.01,(vy+vh*.86)/ch)),'rgb(182,174,168)'); g.addColorStop(1,'rgb(190,182,176)');
     vctx.fillStyle = g; vctx.fillRect(0,0,cw,ch);
+    vctx.save(); vctx.translate(vx+vw/2, vy+vh*.42); vctx.scale(1, .62);
+    const sp = vctx.createRadialGradient(0,0,0,0,0,vw*.52); sp.addColorStop(0,'rgba(178,170,164,1)'); sp.addColorStop(.6,'rgba(174,166,160,.75)'); sp.addColorStop(1,'rgba(174,166,160,0)');
+    vctx.fillStyle = sp; vctx.fillRect(-vw, -vh*2, vw*2, vh*4); vctx.restore();
+    if (fi < 0) return;   // kun studiets baggrund, når de klippede lag har taget over
     let im = frames[fi]; if (!im.complete || !im.naturalWidth) { for (let j=fi;j>=0;j--) if (frames[j].complete && frames[j].naturalWidth){ im = frames[j]; break; } else im = null; }
     if (!im) return;
     const s = rr.width/WW*dpr, ox = (rr.left-sr.left)*dpr, oy = (rr.top-sr.top)*dpr;
     fctx.globalCompositeOperation = 'source-over'; fctx.clearRect(0,0,1100,640); fctx.drawImage(im,0,0);
     fctx.globalCompositeOperation = 'destination-in'; fctx.drawImage(maskC,0,0);
     vctx.drawImage(feather, ox+(VW.x-X0)*s, oy+(VW.y-Y0)*s, VW.w*s, VW.h*s);
+  }
+  // Den lille klode i spillets farver. Cyklen kører på toppen, og kloden drejer under den.
+  // Alt tegnes i enheder hvor klodens radius er 1000; vinkler måles med uret fra toppen.
+  const planetCv = document.getElementById('planet'), pc = planetCv.getContext('2d');
+  const R0 = 1000, B0 = 42, RB = R0 - B0*.5;   // vejen er et bånd langs kanten; hjulene kører midt på det
+  const SKY = '#a9dcd4', GROUND = '#7c9f5c';
+  const hexRgb = h => [1,3,5].map(i => parseInt(h.slice(i,i+2),16));
+  const tone = (h, f) => { const c = hexRgb(h).map(v => Math.round(f < 0 ? v*(1+f) : v + (255-v)*f)); return `rgb(${c[0]},${c[1]},${c[2]})`; };
+  const mixHex = (a, b, t) => { const x = hexRgb(a), y = hexRgb(b); return `rgb(${x.map((v,i) => Math.round(v+(y[i]-v)*t)).join(',')})`; };
+  const poly = (pts, fill) => { pc.beginPath(); pc.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) pc.lineTo(pts[i], pts[i+1]); pc.closePath(); pc.fillStyle = fill; pc.fill(); };
+  const box = (x, y, w, h, fill) => { pc.fillStyle = fill; pc.fillRect(x, y, w, h); };
+  const GLASS = '#5d8290', GLASS2 = '#4a6b77';
+
+  const DRAW = {
+    house(o){ // set skråt forfra: gavl + side + tagflade
+      const { w, h } = o, fw = w*.56, sw = w-fw, x0 = -w/2, ra = fw*.52;
+      box(x0+fw, -h, sw, h, tone(o.wall, -.16));
+      poly([x0+fw/2,-h-ra, x0+fw/2+sw,-h-ra, x0+w+2,-h+1, x0+fw,-h+1], o.roof);
+      poly([x0+fw/2+sw,-h-ra, x0+w+2,-h+1, x0+w-1,-h+1], tone(o.roof, -.18));
+      poly([x0,0, x0,-h, x0+fw/2,-h-ra, x0+fw,-h, x0+fw,0], o.wall);
+      pc.strokeStyle = tone(o.roof, -.12); pc.lineWidth = 3; pc.lineJoin = 'round';
+      pc.beginPath(); pc.moveTo(x0-2,-h+2); pc.lineTo(x0+fw/2,-h-ra-1.5); pc.lineTo(x0+fw+2,-h+2); pc.stroke();
+      const ww = fw*.2, wh = Math.min(h*.22, 11);
+      for (let r = 0; r < o.fl; r++){ const y = -h + 8 + r*(wh+7); box(x0+fw*.16, y, ww, wh, GLASS); box(x0+fw*.64, y, ww, wh, GLASS); for (let k = 0; k < 2; k++) box(x0+fw+sw*(.22+k*.42), y, sw*.2, wh, GLASS2); }
+      box(x0+fw*.4, -13, fw*.2, 13, tone(o.roof, -.3));
+    },
+    pine(o){
+      box(-2.5, -o.h*.3, 5, o.h*.3, '#8b5a2b');
+      for (const [b, t, k] of [[.22, .78, 1], [.5, 1, .72]]){
+        const w = o.h*.42*k;
+        poly([0,-o.h*t, -w,-o.h*b, 0,-o.h*b], o.c1); poly([0,-o.h*t, w,-o.h*b, 0,-o.h*b], o.c2);
+      }
+    },
+    round(o){
+      box(-2.5, -o.h*.42, 5, o.h*.42, '#8b5a2b');
+      const r = o.h*.32, cy = -o.h + r, P = [];
+      for (let i = 0; i < 6; i++){ const a = Math.PI/6 + i*Math.PI/3; P.push(Math.cos(a)*r, cy + Math.sin(a)*r*.95); }
+      poly(P, o.c2); poly([0,cy-r*.95, P[8],P[9], P[6],P[7], P[4],P[5], 0,cy+r*.95], o.c1);
+    },
+    bush(o){ const r = o.h; poly([-r,0, -r*.6,-r*.75, 0,-r, 0,0], o.c1); poly([0,-r, r*.6,-r*.75, r,0, 0,0], o.c2); },
+    lamp(){ box(-1.4, -50, 2.8, 50, '#3a3f47'); box(-1.4, -50, 14, 2.6, '#3a3f47'); poly([8,-48, 17,-48, 15.5,-43, 9.5,-43], '#3a3f47'); box(10,-43,5,2.5,'#fff4c8'); },
+    raadhus(){ // Aarhus Rådhus: lav bygning med det slanke tårn med ur
+      box(-70, -36, 110, 36, '#d6dbdf'); box(40, -36, 26, 36, '#aab2ba'); box(-72, -40, 140, 5, '#9aa3ad');
+      for (let r = 0; r < 2; r++) for (let x = -62; x < 34; x += 13) box(x, -30 + r*14, 7, 8, GLASS);
+      const tx = 6, tw = 26, th = 236;
+      box(tx, -th, tw, th, '#dce1e5'); box(tx+tw, -th+4, 9, th-4, '#a7b0b8');
+      for (let y = -th+30; y < -40; y += 26){ box(tx-1, y, tw+10, 3, '#9aa3ad'); }
+      for (let y = -th+40; y < -50; y += 26){ box(tx+5, y, 5, 13, GLASS); box(tx+tw-10, y, 5, 13, GLASS); }
+      const cy = -th + 52; pc.beginPath(); pc.arc(tx+tw/2, cy, 10, 0, 7); pc.fillStyle = '#f6f6ef'; pc.fill(); pc.lineWidth = 2; pc.strokeStyle = '#6b737b'; pc.stroke();
+      pc.beginPath(); pc.moveTo(tx+tw/2, cy); pc.lineTo(tx+tw/2, cy-7); pc.moveTo(tx+tw/2, cy); pc.lineTo(tx+tw/2+5, cy+1); pc.stroke();
+      for (const x of [0, 8, 17, 24]) box(tx+x, -th-30, 2.4, 30, '#b4bcc3');
+      box(tx-2, -th-34, tw+6, 5, '#9aa3ad'); box(tx+tw/2-.8, -th-58, 1.6, 24, '#6b737b'); poly([tx+tw/2+.8,-th-58, tx+tw/2+12,-th-54, tx+tw/2+.8,-th-50], '#e4574b');
+    },
+    domkirke(){ // Domkirken: rødt murværk og grønt kobber
+      const brick = '#c8604f', brick2 = '#a84c3e', cu = '#7fb89e', cu2 = '#679f87';
+      box(-20, -58, 88, 58, brick); box(68, -54, 16, 54, brick2);
+      poly([-22,-56, 23,-100, 68,-56], cu); poly([23,-100, 68,-56, 84,-52, 40,-96], cu2);
+      for (let x = -10; x < 62; x += 16){ box(x, -42, 7, 22, GLASS); pc.beginPath(); pc.arc(x+3.5, -42, 3.5, Math.PI, 0); pc.fillStyle = GLASS; pc.fill(); }
+      box(-50, -126, 32, 126, brick); box(-18, -122, 9, 122, brick2);
+      box(-42, -104, 8, 18, GLASS); box(-42, -64, 8, 18, GLASS);
+      poly([-52,-124, -34,-232, -16,-124], cu); poly([-34,-232, -16,-124, -8,-120], cu2);
+      box(-35, -246, 2, 16, '#3a3f47');
+    },
+  };
+
+  // Byg klodens indhold én gang (fast frø, så det ser ens ud hver gang)
+  const PLANET = (() => {
+    let sd = 23; const rnd = () => (sd = (sd*16807) % 2147483647) / 2147483647;
+    const greens = [['#74ad58','#5f9a4b'], ['#7fb89e','#679f87'], ['#8fbf5a','#74a14a']];
+    const tree = (a, big) => { const [c1, c2] = greens[(rnd()*3)|0], h = (big ? 70 : 42) + rnd()*38; return { a, t: rnd() < .55 ? 'pine' : 'round', h, c1, c2 }; };
+    const walls = ['#fbf7ee','#f4efe6','#f6dd7a','#f2c9a5','#fbf7ee'], roofs = ['#e4574b','#c8604f','#e4574b','#a77d52'];
+    const house = (a, wall, roof) => ({ a, t: 'house', w: 52 + rnd()*30, h: 40 + rnd()*30, fl: 0, wall: wall || walls[(rnd()*walls.length)|0], roof: roof || roofs[(rnd()*roofs.length)|0] });
+    // Faste steder: det man ser undervejs på turen (0 til ca. 70 grader)
+    const fixed = [
+      { a: -14, t: 'domkirke' },
+      { a: 9,  ...house(9, '#e8a0a0', '#c8604f') },  // samme farver som husene i spillet
+      { a: 21, t: 'raadhus' },
+      { a: 36, ...house(36, '#e6bf6e', '#e4574b') },
+      { a: 50, ...house(50, '#82b4d4', '#e4574b') },
+      { a: 63, ...house(63, '#ad9fd0', '#c8604f') },
+    ];
+    const list = [];
+    for (let a = -40; a < 320; a += 3 + rnd()*5){
+      if (fixed.some(f => Math.abs(f.a - a) < (f.t === 'raadhus' || f.t === 'domkirke' ? 9 : 5))) continue;
+      const r = rnd();
+      if (r < .3) list.push(house(a));
+      else if (r < .78) list.push(tree(a, rnd() < .5));
+      else if (r < .9) list.push({ a, t: 'bush', h: 10 + rnd()*9, c1: '#74ad58', c2: '#5f9a4b' });
+      else list.push({ a, t: 'lamp' });
+    }
+    list.push(...fixed);
+    list.forEach(o => { if (o.t === 'house') o.fl = Math.max(1, Math.min(3, Math.floor((o.h-10)/20))); });
+    // Bagerste række først: træer og lygter bag husene
+    const order = { pine: 0, round: 0, lamp: 1, bush: 3, house: 2, raadhus: 2, domkirke: 2 };
+    list.sort((x, y) => order[x.t] - order[y.t]);
+    // Svage flader på kloden, så den ligner en low-poly globus
+    const facets = [];
+    for (let i = 0; i < 26; i++){
+      const a = rnd()*Math.PI*2, d = rnd()*(R0-B0-160), s = 180 + rnd()*260, x = Math.cos(a)*d, y = Math.sin(a)*d;
+      const b = rnd()*Math.PI*2; facets.push({ pts: [0,1,2].flatMap(k => [x + Math.cos(b+k*2.1+rnd()*.5)*s, y + Math.sin(b+k*2.1+rnd()*.5)*s]), c: rnd() < .5 ? 'rgba(255,255,255,.06)' : 'rgba(30,50,20,.07)' });
+    }
+    const clouds = [...Array(6)].map((_, i) => ({ x: i/6 + rnd()*.08, y: .06 + rnd()*.22, s: .7 + rnd()*.6, par: .5 + rnd()*.8 }));
+    return { list, facets, clouds };
+  })();
+
+  function cloud(x, y, s){
+    pc.save(); pc.translate(x, y); pc.scale(s, s);
+    poly([-70,0, -58,-26, -24,-34, -6,-56, 30,-58, 52,-34, 84,-28, 96,0], '#fbfbf7');
+    poly([-6,-56, 30,-58, 52,-34, 84,-28, 96,0, 20,0], '#e9eeed');
+    pc.restore();
+  }
+
+  let planetKey = '';
+  function drawPlanet(dist, rise, zo, gy, W, H){
+    const dpr = Math.min(devicePixelRatio || 1, 2), cw = Math.round(W*dpr), ch = Math.round(H*dpr);
+    const key = dist.toFixed(1)+'|'+rise.toFixed(4)+'|'+zo.toFixed(4)+'|'+gy.toFixed(1)+'|'+cw+'x'+ch;
+    if (key === planetKey) return; planetKey = key;
+    if (planetCv.width !== cw || planetCv.height !== ch){ planetCv.width = cw; planetCv.height = ch; }
+    pc.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Himmel: lys foroven ligesom spillets himmelkuppel, flad mod horisonten. Bliver helt flad når kloden zoomer ud.
+    const g = pc.createLinearGradient(0, 0, 0, H); g.addColorStop(0, mixHex('#86c0cf', SKY, zo)); g.addColorStop(.62, SKY); g.addColorStop(1, SKY);
+    pc.fillStyle = g; pc.fillRect(0, 0, W, H);
+    if (zo < 1){
+      const sg = pc.createRadialGradient(W*.8, H*.14, 0, W*.8, H*.14, H*.45); sg.addColorStop(0, `rgba(255,246,222,${.7*(1-zo)})`); sg.addColorStop(1, 'rgba(255,246,222,0)');
+      pc.fillStyle = sg; pc.fillRect(0, 0, W, H);
+      pc.globalAlpha = 1-zo;
+      const span = W + 500;
+      PLANET.clouds.forEach(c => { const x = ((c.x*span - dist*.06*c.par) % span + span) % span - 250; cloud(x, c.y*H, c.s*Math.min(1.2, W/1100 + .35)); });
+      pc.globalAlpha = 1;
+    }
+    if (zo > 0){ const hg = pc.createRadialGradient(W/2, H*.51, 0, W/2, H*.51, Math.max(W, H)*.62); hg.addColorStop(0, `rgba(255,255,255,${.2*zo})`); hg.addColorStop(1, 'rgba(255,255,255,0)'); pc.fillStyle = hg; pc.fillRect(0, 0, W, H); }
+    // Kloden: stor under cyklen, til sidst en lille globus midt på skærmen (samme størrelse som 3D-kloden når den toner ind)
+    const Rpx = Math.max(W*1.1, H*1.05), s0 = Rpx/R0, s1 = .155*H/R0, sc = s0*Math.pow(s1/s0, zo);
+    // Klodens top glider jævnt fra vejen under cyklen op til globussens top, så horisonten aldrig forsvinder
+    const top = (gy + (RB-R0)*s0)*(1-zo) + (H*.51 - .155*H)*zo + rise*rise*H*.45, cy = top + R0*sc, rot = dist/(RB*s0);
+    pc.save(); pc.translate(W/2, cy); pc.scale(sc, sc); pc.rotate(-rot);
+    const half = W/2 >= R0*sc*.9 ? 9 : Math.asin(W/2/(R0*sc)) + .35;
+    for (const o of PLANET.list){
+      const a = o.a*Math.PI/180, sa = Math.atan2(Math.sin(a-rot), Math.cos(a-rot));
+      if (Math.abs(sa) > half) continue;
+      pc.save(); pc.rotate(a); pc.translate(0, -R0+1); DRAW[o.t](o); pc.restore();
+    }
+    const dg = pc.createRadialGradient(-R0*.25, -R0*.7, 0, 0, -R0*.2, R0*1.5); dg.addColorStop(0, tone(GROUND, .06)); dg.addColorStop(1, tone(GROUND, -.22));
+    pc.beginPath(); pc.arc(0, 0, R0, 0, Math.PI*2); pc.fillStyle = dg; pc.fill();
+    pc.save(); pc.clip(); PLANET.facets.forEach(f => poly(f.pts, f.c)); pc.restore();
+    pc.lineWidth = B0; pc.strokeStyle = '#e9e2d2'; pc.beginPath(); pc.arc(0, 0, R0-B0/2, 0, Math.PI*2); pc.stroke();
+    pc.lineWidth = 3; pc.strokeStyle = '#cfc4ab'; pc.beginPath(); pc.arc(0, 0, R0-B0, 0, Math.PI*2); pc.stroke();
+    pc.lineWidth = 2; pc.strokeStyle = '#d9cfb9'; pc.beginPath(); pc.arc(0, 0, R0-1, 0, Math.PI*2); pc.stroke();
+    pc.setLineDash([20, 26]); pc.lineWidth = 3.5; pc.strokeStyle = '#fbf7ee'; pc.beginPath(); pc.arc(0, 0, R0-B0*.42, 0, Math.PI*2); pc.stroke(); pc.setLineDash([]);
+    pc.restore();
   }
   let target = 0, p = 0, running = false;
 
@@ -376,9 +530,10 @@
     const mx = innerWidth < 760 ? .5 : 1; // mindre sideværts bevægelse på smalle skærme
     // Overgang fra video til lag
     const kk = vidOK ? ease(win(p,V1,V1+.03)) : 1;
+    const pin = vidOK ? ease(win(p,V1+.005,V1+.065)) : 1;   // himmel og klode toner ind, når cyklen er kørt ud af videoen
+    drawVideo(kk >= 1 ? -1 : Math.min(FRAMES-1, Math.round(win(p,0,V1)*(FRAMES-1))));
+    p1.style.visibility = pin >= 1 ? 'hidden' : 'visible';
     const q = p < R1 ? VEND : VEND + Math.min(1, (p-R1)/(R2-R1))*(.95-VEND);   // adskillelsen kører i den oprindelige tidsskala
-    drawVideo(Math.min(FRAMES-1, Math.round(win(p,0,V1)*(FRAMES-1))));
-    p1.style.opacity = String(1-kk); p1.style.visibility = kk>=1 ? 'hidden' : 'visible';
     const mo = win(p,MS,ME), gl = Math.sin(Math.PI*mo);
     rigEl.style.opacity = String(kk*(1-ease(mo)));
     gelEl.style.opacity = String(gl*.85);
@@ -388,9 +543,9 @@
     const S = 10*innerHeight, k0 = rw/WW, dist = (Math.min(p,R1) + .05*ease(win(p,R1,R1+.12)))*S*.9;
     const rearDeg = dist/(261*k0)*57.2958, frontDeg = dist/(221*k0)*57.2958;
     const rr0 = rigEl.getBoundingClientRect(), sr0 = stageEl.getBoundingClientRect();
-    rideEl.style.setProperty('--d', dist.toFixed(1)+'px');
-    rideEl.style.setProperty('--gy', (rr0.top - sr0.top + .909*rr0.height).toFixed(1)+'px');
-    rideEl.style.opacity = String(kk*(1-ease(win(p,R2,R2+.08))));
+    const rideOp = pin*(1-ease(win(p,R2-.03,R2+.005)));   // 2D-kloden toner over i 3D-kloden, mens den står stille (f = 0)
+    rideEl.style.opacity = String(rideOp);
+    if (rideOp > 0) drawPlanet(dist - V1*S*.9, 1-pin, ease(win(p,R1+.03,R2-.03)), rr0.top - sr0.top + .909*rr0.height, sr0.width, sr0.height);
     floorEl.style.opacity = String(1-ease(win(p,R2,R2+.08)));
     const settle = 75*(rw/WW)*(1-ease(win(p,V1,V1+.06))); // videoens cykel har rullet lidt frem
     const ang = -10 - 24*ease(win(q,.36,.62)) + 14*ease(win(q,.62,.92));
@@ -435,16 +590,16 @@
     const idx = p > R3 ? -1 : q<.34 ? -1 : q<.46 ? 0 : q<.60 ? 1 : q<.74 ? 2 : 3;
     labels.forEach((l,i) => l.classList.toggle('on', i===idx && !playMode));
     titleFrame();
-    worldSync(ease(win(p,R2-.02,R2+.06)), win(p,R2,R3-.01), ease(win(p,MS,ME)), win(p,R3+.07,R4), playMode, ang, rr0, sr0, PR);
+    worldSync(ease(win(p,R2-.05,R2-.03)), win(p,R2,R3-.01), ease(win(p,MS,ME)), win(p,R3+.07,R4), playMode, ang, rr0, sr0, PR);
     const lit = (chars, k) => chars.forEach((c,i) => c.classList.toggle('lit', i < k*chars.length+0.001));
-    h1.parentElement.style.opacity = String(1 - win(p,.012,.047));
-    Object.values(W).forEach((w,i) => lit(lblCh[i], win(q, w[0]-.02, w[0]+.10)));
+    document.getElementById('hero').style.opacity = String(1 - win(p,.012,.047));
+    [.34,.46,.60,.74].forEach((q0,i) => lit(lblCh[i], win(q, q0-.01, q0+.09)));
     barEl.style.width = (p*100)+'%';
   }
   // Hastighedsgrænse: animationen kan højst køre MAXV af hele forløbet pr. sekund, så effekterne når at blive set, og siden kan følge med
   const MAXV = .055; let lastT = 0;
 
-  // Automatisk scroll: når man er begyndt at scrolle, fortsætter siden i roligt, fast tempo
+  // Automatisk scroll: efter den mørke baggrund er kommet, fortsætter siden i roligt, fast tempo
   const AUTO = .034;            // andel af hele forløbet pr. sekund (cirka 30 sekunder i alt)
   const autoBtn = document.getElementById('autoBtn');
   let autoOn = false, autoStarted = false, autoY = 0, autoT = 0, selfScroll = false;
@@ -452,8 +607,7 @@
   function setAuto(on){ autoOn = on; autoY = scrollY; autoBtn.innerHTML = on ? '&#10074;&#10074; Pause' : '&#9654; Fortsæt'; }
   addEventListener('scroll', () => {
     if (selfScroll) return;
-    if (!autoStarted && scrollY > 30 && !playMode){ autoStarted = true; setAuto(true); }
-    else autoY = scrollY;
+    autoY = scrollY;
   }, {passive:true});
   addEventListener('wheel', e => { if (autoOn && e.deltaY < 0) setAuto(false); }, {passive:true});
   addEventListener('touchstart', () => { if (autoOn) setAuto(false); }, {passive:true});
@@ -461,6 +615,8 @@
   autoBtn.addEventListener('click', () => setAuto(!autoOn));
   (function autoLoop(now){
     const dt = Math.min(.1, autoT ? (now - autoT)/1000 : .016); autoT = now;
+    // Starter først når man selv har scrollet gennem videoen, og kloden er kommet ind under cyklen
+    if (!autoStarted && !playMode && p >= V1 + .05){ autoStarted = true; setAuto(true); }
     if (autoOn && !playMode){
       const end = range();
       if (p >= R4 + .07 || autoY >= end - 1){ setAuto(false); autoBtn.classList.remove('show'); }
@@ -478,6 +634,13 @@
     draw();
     if (p !== target) requestAnimationFrame(tick); else { running = false; lastT = 0; }
   }
+  // Menuen hopper til det sted i turen, hvor emnet vises (eller til spillet)
+  const scrollFor = pp => pp * (document.getElementById('scene').offsetHeight - innerHeight);
+  document.querySelectorAll('nav [data-go]').forEach(b => b.addEventListener('click', () => {
+    const g = b.dataset.go, pp = g === 'play' ? R4 + .08 : R1 + ([.40,.53,.67,.80][+g] - VEND)/(.95 - VEND)*(R2 - R1);
+    if (autoOn) setAuto(false);
+    scrollTo({ top: scrollFor(pp), behavior: reduce ? 'auto' : 'smooth' });
+  }));
   readScroll();
 })();
 </script>
