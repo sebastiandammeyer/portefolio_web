@@ -120,9 +120,24 @@
   @media (max-width:520px){.bento{grid-template-columns:1fr}.card.big{grid-column:auto}}
   footer{padding:60px 6vw 80px;text-align:center;color:var(--mute);font-size:13px}
 
+  /* Loading: lille klode set langt væk fra */
+  body.loading{overflow:hidden}
+  #loader{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:radial-gradient(75% 65% at 50% 45%,#d8d0cb 0%,#c6bdb8 60%,#b5aca7 100%);transition:opacity .8s ease,visibility .8s}
+  #loader.done{opacity:0;visibility:hidden}
+  #loader .lw{display:flex;flex-direction:column;align-items:center}
+  #ldc{width:min(78vmin,480px);height:min(78vmin,480px);display:block}
+  #loader .lt{margin-top:-2vmin;text-align:center;color:var(--ink)}
+  #loader .lt b{display:block;font-size:16px;font-weight:600;letter-spacing:-.01em}
+  #loader .lt span{display:block;margin-top:6px;font-size:13px;font-weight:600;color:var(--ink2);font-variant-numeric:tabular-nums;letter-spacing:.06em}
+  #holdMsg{position:absolute;left:0;right:0;top:calc(66.5% + 12px);text-align:center;font-weight:600;font-size:15px;color:var(--ink);opacity:0;transition:opacity .5s;pointer-events:none;z-index:7}
+  #holdMsg.on{opacity:1}
 </style>
 </head>
-<body>
+<body class="loading">
+<div id="loader" role="status" aria-live="polite">
+  <div class="lw"><canvas id="ldc" aria-hidden="true"></canvas>
+  <p class="lt"><b>Sebastian cykler verden rundt</b><span id="ldp">0 %</span></p></div>
+</div>
 
 
 
@@ -206,6 +221,7 @@
     <button id="autoBtn" type="button">&#10074;&#10074; Pause</button>
     <button id="exitBtn" type="button">&#8592; Tilbage til siden</button>
     <div id="playHint">Kør med piletasterne. Klik på et hus og gå ind.</div>
+    <div id="holdMsg">Henter verdenen …</div>
     <div id="bar"></div>
   </div>
 </div>
@@ -300,7 +316,7 @@
   }
   // Den lille klode i spillets farver. Cyklen kører på toppen, og kloden drejer under den.
   // Alt tegnes i enheder hvor klodens radius er 1000; vinkler måles med uret fra toppen.
-  const planetCv = document.getElementById('planet'), pc = planetCv.getContext('2d');
+  const planetCv = document.getElementById('planet'); let pc = planetCv.getContext('2d');
   const R0 = 1000, B0 = 42, RB = R0 - B0*.5;   // vejen er et bånd langs kanten; hjulene kører midt på det
   const SKY = '#a9dcd4', GROUND = '#7c9f5c';
   const hexRgb = h => [1,3,5].map(i => parseInt(h.slice(i,i+2),16));
@@ -432,8 +448,12 @@
     const Rpx = Math.max(W*1.1, H*1.05), s0 = Rpx/R0, s1 = .155*H/R0, sc = s0*Math.pow(s1/s0, zo);
     // Klodens top glider jævnt fra vejen under cyklen op til globussens top, så horisonten aldrig forsvinder
     const top = (gy + (RB-R0)*s0)*(1-zo) + (H*.51 - .155*H)*zo + rise*rise*H*.45, cy = top + R0*sc, rot = dist/(RB*s0);
-    pc.save(); pc.translate(W/2, cy); pc.scale(sc, sc); pc.rotate(-rot);
-    const half = W/2 >= R0*sc*.9 ? 9 : Math.asin(W/2/(R0*sc)) + .35;
+    globe(pc, W/2, cy, sc, rot, W/2 >= R0*sc*.9 ? 9 : Math.asin(W/2/(R0*sc)) + .35);
+  }
+  // Selve kloden med huse, træer og vej. Tegnes på den givne flade; half = hvor langt ud til siden der tegnes ting (radianer).
+  function globe(ctx, x, y, sc, rot, half){
+    const prev = pc; pc = ctx;
+    pc.save(); pc.translate(x, y); pc.scale(sc, sc); pc.rotate(-rot);
     for (const o of PLANET.list){
       const a = o.a*Math.PI/180, sa = Math.atan2(Math.sin(a-rot), Math.cos(a-rot));
       if (Math.abs(sa) > half) continue;
@@ -446,28 +466,34 @@
     pc.lineWidth = 3; pc.strokeStyle = '#cfc4ab'; pc.beginPath(); pc.arc(0, 0, R0-B0, 0, Math.PI*2); pc.stroke();
     pc.lineWidth = 2; pc.strokeStyle = '#d9cfb9'; pc.beginPath(); pc.arc(0, 0, R0-1, 0, Math.PI*2); pc.stroke();
     pc.setLineDash([20, 26]); pc.lineWidth = 3.5; pc.strokeStyle = '#fbf7ee'; pc.beginPath(); pc.arc(0, 0, R0-B0*.42, 0, Math.PI*2); pc.stroke(); pc.setLineDash([]);
-    pc.restore();
+    pc.restore(); pc = prev;
   }
   let target = 0, p = 0, running = false;
 
   function readScroll(){
     if (playMode) return;
     const r = document.getElementById('scene').getBoundingClientRect();
-    target = Math.min(1, Math.max(0, -r.top / (r.height - innerHeight)));
+    const span = r.height - innerHeight;   // kan være 0, mens et link åbnes (fx i Arc), og så må der ikke deles med 0
+    target = span > 0 ? Math.min(1, Math.max(0, -r.top / span)) : 0;
+    if (!worldReady && target > HOLD) target = HOLD;   // vent på 3D-verdenen ved den lille globus
     if (!running){ running = true; requestAnimationFrame(tick); }
   }
   addEventListener('scroll', readScroll, {passive:true});
   addEventListener('resize', readScroll);
+  addEventListener('pageshow', readScroll);
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';   // start altid fra toppen
 
   const T = (k,x,y,z,r) => `translate3d(${x}px,${y}px,${z}px) rotate(${r}deg)`;
 
   // 3D-verdenen (spillet) ligger bag som iframe og styres af scroll-positionen
+  const HOLD = R2 - .055;
   let lockY = 0, playMode = false, pg = 0, worldReady = false, lastMsg = '', loadedWorld = false, lastPlay = false;
   const lite = innerWidth < 760 || (navigator.hardwareConcurrency||8) <= 4;
-  function loadWorld(){ if (loadedWorld) return; loadedWorld = true; worldEl.src = 'prototype/spil_v20.html?embed=1'; }
-  addEventListener('load', () => setTimeout(loadWorld, 400));
-  addEventListener('scroll', loadWorld, {passive:true, once:true});
-  addEventListener('message', (e) => { if (e.origin === location.origin && e.data && e.data.type === 'game-ready'){ worldReady = true; lastMsg = ''; draw(); } });
+  let worldT0 = 0;
+  function loadWorld(){ if (loadedWorld) return; loadedWorld = true; worldT0 = performance.now(); worldEl.src = 'prototype/spil_v20.html?embed=1'; }
+  addEventListener('message', (e) => { if (e.origin === location.origin && e.data && e.data.type === 'game-ready'){ worldReady = true; lastMsg = ''; readScroll(); draw(); } });
+  const holdEl = document.getElementById('holdMsg');
+  setInterval(() => { if (!worldReady && loadedWorld && holdEl.classList.contains('on') && performance.now() - worldT0 > 25000) holdEl.textContent = 'Verdenen kunne ikke hentes. Prøv at genindlæse siden.'; }, 2000);
 
   // Bogstaver der flyver ind, og knappen "Start spillet"
   const TXT = ['Udforsk','Sebastians','verden'], tlEl = document.getElementById('tl'), tsubEl = document.getElementById('tsub'), startBtn = document.getElementById('startBtn'), exitBtn = document.getElementById('exitBtn'), titleEl = document.getElementById('title');
@@ -595,6 +621,7 @@
     document.getElementById('hero').style.opacity = String(1 - win(p,.012,.047));
     [.34,.46,.60,.74].forEach((q0,i) => lit(lblCh[i], win(q, q0-.01, q0+.09)));
     barEl.style.width = (p*100)+'%';
+    holdEl.classList.toggle('on', !worldReady && p >= HOLD - .003);
   }
   // Hastighedsgrænse: animationen kan højst køre MAXV af hele forløbet pr. sekund, så effekterne når at blive set, og siden kan følge med
   const MAXV = .055; let lastT = 0;
@@ -617,7 +644,7 @@
     const dt = Math.min(.1, autoT ? (now - autoT)/1000 : .016); autoT = now;
     // Starter først når man selv har scrollet gennem videoen, og kloden er kommet ind under cyklen
     if (!autoStarted && !playMode && p >= V1 + .05){ autoStarted = true; setAuto(true); }
-    if (autoOn && !playMode){
+    if (autoOn && !playMode && (worldReady || autoY < HOLD*range())){
       const end = range();
       if (p >= R4 + .07 || autoY >= end - 1){ setAuto(false); autoBtn.classList.remove('show'); }
       else { autoY = Math.min(end, autoY + AUTO*end*dt); selfScroll = true; scrollTo(0, autoY); requestAnimationFrame(() => { selfScroll = false; }); }
@@ -628,7 +655,7 @@
 
   function tick(now){
     const dt = Math.min(.1, lastT ? (now - lastT) / 1000 : .016); lastT = now;
-    if (reduce) p = target;
+    if (reduce || !Number.isFinite(p)) p = target;
     else { let dp = (target - p) * (1 - Math.pow(.9, dt*60)); const cap = MAXV*dt; if (dp > cap) dp = cap; else if (dp < -cap) dp = -cap; p += dp; }
     if (Math.abs(target-p) < .0004) p = target;
     draw();
@@ -641,6 +668,83 @@
     if (autoOn) setAuto(false);
     scrollTo({ top: scrollFor(pp), behavior: reduce ? 'auto' : 'smooth' });
   }));
+  // ---- Loading: Sebastian cykler én tur rundt om den lille klode, mens siden hentes. Turen er selve loading-baren. ----
+  // Sebastian på long johnen, set fra siden (enheder som kloden; hjulene står på 0, opad er -y). a = pedalvinkel.
+  function rider(a){
+    const st = (w, c) => { pc.lineWidth = w; pc.strokeStyle = c; pc.lineCap = 'round'; pc.lineJoin = 'round'; };
+    const line = (...pts) => { pc.beginPath(); pc.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) pc.lineTo(pts[i], pts[i+1]); pc.stroke(); };
+    const leg = (hx, hy, px, py, c) => { // to led med knæet fremad
+      const L = 100, dx = px-hx, dy = py-hy, d = Math.min(2*L-1, Math.hypot(dx, dy)), m = Math.atan2(dy, dx), k = Math.acos(d/(2*L));
+      const kx = hx + Math.cos(m-k)*L, ky = hy + Math.sin(m-k)*L; st(20, c); line(hx, hy, kx, ky, px, py);
+    };
+    const wheel = (x, r, rot) => {
+      st(13, '#23272e'); pc.beginPath(); pc.arc(x, -r, r, 0, 7); pc.stroke();
+      st(3, '#9aa3ad'); pc.beginPath(); pc.arc(x, -r, r-9, 0, 7); pc.stroke();
+      for (let i = 0; i < 3; i++){ const s = rot + i*Math.PI/3; line(x - Math.cos(s)*(r-9), -r - Math.sin(s)*(r-9), x + Math.cos(s)*(r-9), -r + Math.sin(s)*(r-9)); }
+    };
+    // Som den rigtige cykel: baghjul under sadlen, styrstang midt på, langt lavt lad og lille forhjul langt fremme
+    const bb = [-72, -60], cr = 28, p1 = [bb[0]+Math.cos(a)*cr, bb[1]+Math.sin(a)*cr], p2 = [bb[0]-Math.cos(a)*cr, bb[1]-Math.sin(a)*cr], hip = [-104, -214];
+    const P = '#6b2fc0';
+    leg(hip[0], hip[1], p2[0], p2[1], '#3a3f47');                       // bageste ben
+    wheel(-178, 58, a*1.7); wheel(196, 44, a*2.2);
+    box(-4, -80, 140, 14, '#3a3f47');                                   // ladet
+    box(14, -126, 96, 46, '#a77d52'); box(14, -126, 96, 8, '#c49a6c'); box(58, -126, 8, 46, '#8b6440');   // kasse på ladet
+    st(14, P);
+    line(-178, -58, bb[0], bb[1], -104, -196, -178, -58);               // baglæns trekant
+    line(bb[0], bb[1], -6, -64, 136, -64, 158, -150);                   // lav ramme under ladet og op til styrfløjet
+    line(158, -150, 196, -44);                                          // forgaffel
+    st(12, P); line(-6, -64, -6, -262);                                 // styrstangen midt på cyklen
+    pc.fillStyle = P; pc.fillRect(-100, -186, 94, 50); pc.fillStyle = '#8a55d6'; pc.fillRect(-92, -178, 78, 6);   // pladen mellem sadel og styr
+    st(10, '#23272e'); line(-6, -262, -40, -266);                       // styret
+    pc.beginPath(); pc.arc(164, -160, 9, 0, 7); pc.fillStyle = '#fff4c8'; pc.fill();   // lygte
+    st(12, '#8b5a2b'); line(-126, -210, -84, -208);                     // sadel
+    st(7, '#23272e'); line(bb[0], bb[1], p1[0], p1[1]);
+    leg(hip[0], hip[1], p1[0], p1[1], '#2a2f36');                       // forreste ben
+    st(36, '#e4574b'); line(hip[0], hip[1], -78, -326);                 // krop, lænet lidt frem
+    st(15, '#e4574b'); line(-74, -316, -52, -282, -40, -266);           // arm til styret
+    pc.beginPath(); pc.arc(-62, -372, 30, 0, 7); pc.fillStyle = '#f2c9a5'; pc.fill();
+    pc.beginPath(); pc.arc(-66, -380, 32, Math.PI*1.02, Math.PI*1.95); pc.lineTo(-66, -380); pc.fillStyle = '#f6dd7a'; pc.fill();
+    box(-52, -380, 28, 9, '#1a1d22');
+  }
+
+  const loaderEl = document.getElementById('loader'), ldc = document.getElementById('ldc'), ldp = document.getElementById('ldp'), lctx = ldc.getContext('2d');
+  const toLoad = [...frames, ...document.querySelectorAll('#bike img')];
+  let nLoaded = 0, shown = 0, loaderDone = false, ldT0 = performance.now(), ldLast = 0, pedal = 0;
+  const count = () => { nLoaded++; };
+  toLoad.forEach(im => { if (im.complete) nLoaded++; else { im.addEventListener('load', count, { once: true }); im.addEventListener('error', count, { once: true }); } });
+  function finishLoading(){
+    if (loaderDone) return; loaderDone = true;
+    scrollTo(0, 0); document.body.classList.remove('loading'); loaderEl.classList.add('done');
+    lastKey = ''; readScroll(); draw();
+    setTimeout(loadWorld, 250);
+  }
+  (function loaderLoop(now){
+    if (loaderDone && !loaderEl.isConnected) return;
+    const dt = Math.min(.05, ldLast ? (now - ldLast)/1000 : .016); ldLast = now;
+    const real = toLoad.length ? nLoaded/toLoad.length : 1, waited = now - ldT0;
+    // Turen følger det hentede, men tager mindst 1,6 sekunder, så man når at se den. Efter 15 sekunder går siden i gang alligevel.
+    const goal = Math.min(real, waited/1600, 1);
+    shown += (goal - shown)*Math.min(1, dt*4); if (Math.abs(goal - shown) < .003) shown = goal;
+    pedal += dt*7;
+    const css = ldc.clientWidth || 300, dpr = Math.min(devicePixelRatio || 1, 2), px = Math.round(css*dpr);
+    if (ldc.width !== px){ ldc.width = px; ldc.height = px; }
+    const prev = pc; pc = lctx;
+    pc.setTransform(dpr, 0, 0, dpr, 0, 0); pc.clearRect(0, 0, css, css);
+    const c = css/2, rad = css*.27, sc = rad/R0, th = shown*Math.PI*2;
+    const sh = pc.createRadialGradient(c, c, rad*.9, c, c, rad*1.75); sh.addColorStop(0, 'rgba(255,255,255,.35)'); sh.addColorStop(1, 'rgba(255,255,255,0)');
+    pc.fillStyle = sh; pc.fillRect(0, 0, css, css);
+    globe(pc, c, c, sc, 0, 9);
+    pc.save(); pc.translate(c, c); pc.scale(sc, sc);
+    if (th > .001){ pc.lineWidth = B0*.5; pc.lineCap = 'round'; pc.strokeStyle = '#6b2fc0'; pc.beginPath(); pc.arc(0, 0, R0-B0*.5, -Math.PI/2, -Math.PI/2 + th); pc.stroke(); }
+    pc.rotate(th); pc.translate(0, -RB + 6 + Math.sin(pedal*2)*3); pc.scale(1.5, 1.5); rider(pedal);
+    pc.restore();
+    pc = prev;
+    ldp.textContent = Math.round(shown*100) + ' %';
+    if (!loaderDone && shown >= .999 && real >= 1) finishLoading();
+    if (!loaderDone && waited > 15000) finishLoading();
+    if (loaderDone && waited > 60000) return;
+    if (!loaderDone || getComputedStyle(loaderEl).visibility !== 'hidden') requestAnimationFrame(loaderLoop);
+  })(performance.now());
   readScroll();
 })();
 </script>
